@@ -23,13 +23,13 @@ inherited issue backlog was triaged.
 
 ### Added
 
-- **Interpreter picker** (`autocomplete-python:select-interpreter`) listing every
+- **Interpreter picker** (`autocomplete-python-pulsar:select-interpreter`) listing every
   environment found, labelled by where it came from.
 - **Status bar entry** showing the active environment. Click it to change.
-- **`autocomplete-python:show-environment`**, reporting the interpreter, how it
+- **`autocomplete-python-pulsar:show-environment`**, reporting the interpreter, how it
   was found, the Jedi version in use, and every other candidate in priority
   order.
-- **`autocomplete-python:restart-daemon`.**
+- **`autocomplete-python-pulsar:restart-daemon`.**
 - **Broad interpreter discovery**, modelled on the VS Code Python extension:
   Poetry, Pipenv, pyenv (honouring `.python-version`), Conda, virtualenvwrapper,
   project virtual environments, `VIRTUAL_ENV`/`CONDA_PREFIX`, and `PATH`.

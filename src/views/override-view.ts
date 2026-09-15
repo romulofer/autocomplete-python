@@ -23,7 +23,7 @@ export function insertOverride(
   });
 }
 
-/** The picker shown by `autocomplete-python:override-method`. */
+/** The picker shown by `autocomplete-python-pulsar:override-method`. */
 export function createOverrideView(
   onConfirm: (method: MethodDefinition) => void
 ): SelectListPanel<MethodDefinition> {

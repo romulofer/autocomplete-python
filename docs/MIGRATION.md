@@ -12,7 +12,7 @@ should work. Two things are worth checking:
    `python3 -m pip install --upgrade "jedi>=0.19"`.
 2. **Python must be 3.10 or newer.** Python 2 is no longer supported.
 
-Run **Autocomplete Python: Show Environment** to confirm both at once.
+Run **Autocomplete Python Pulsar: Show Environment** to confirm both at once.
 
 ## Kite is gone
 
@@ -47,9 +47,9 @@ New in 2.0:
 
 | Command | What it does |
 | --- | --- |
-| `autocomplete-python:select-interpreter` | Pick from every discovered environment |
-| `autocomplete-python:show-environment` | Report the interpreter and Jedi version in use |
-| `autocomplete-python:restart-daemon` | Restart the Python process |
+| `autocomplete-python-pulsar:select-interpreter` | Pick from every discovered environment |
+| `autocomplete-python-pulsar:show-environment` | Report the interpreter and Jedi version in use |
+| `autocomplete-python-pulsar:restart-daemon` | Restart the Python process |
 
 There is also a status bar entry showing the active environment; click it to
 change interpreter.

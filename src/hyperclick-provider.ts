@@ -29,7 +29,7 @@ interface HyperclickSuggestion {
  */
 export default {
   priority: 1,
-  providerName: 'autocomplete-python',
+  providerName: 'autocomplete-python-pulsar',
 
   getSuggestionForWord(
     editor: TextEditor,

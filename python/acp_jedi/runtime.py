@@ -55,7 +55,7 @@ def check_python_version(version_info: tuple[int, ...] | None = None) -> None:
         return
     raise FatalStartupError(
         protocol.FATAL_PYTHON_TOO_OLD,
-        "autocomplete-python needs a newer Python.",
+        "autocomplete-python-pulsar needs a newer Python.",
         "Running {}; {}.{} or newer is required.".format(
             ".".join(str(part) for part in current), *MIN_PYTHON_VERSION
         ),
@@ -68,7 +68,7 @@ def check_jedi_version(jedi_version: str) -> None:
         return
     raise FatalStartupError(
         protocol.FATAL_JEDI_TOO_OLD,
-        "autocomplete-python needs a newer Jedi.",
+        "autocomplete-python-pulsar needs a newer Jedi.",
         "Found jedi {}; {}.{} or newer is required.".format(
             jedi_version, *MIN_JEDI_VERSION
         ),
@@ -82,7 +82,7 @@ def load_jedi() -> Any:
     except ImportError:
         raise FatalStartupError(
             protocol.FATAL_JEDI_MISSING,
-            "autocomplete-python could not import Jedi.",
+            "autocomplete-python-pulsar could not import Jedi.",
             traceback.format_exc(),
         ) from None
     check_jedi_version(jedi.__version__)

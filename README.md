@@ -1,13 +1,17 @@
-# autocomplete-python
+# autocomplete-python-pulsar
 
-Python completions, go-to-definition, find-usages, method override and
-project-wide rename for [Pulsar](https://pulsar-edit.dev), powered by
-[Jedi](https://github.com/davidhalter/jedi).
+Python IDE features for [Pulsar](https://pulsar-edit.dev), powered by
+[Jedi](https://github.com/davidhalter/jedi): completions, go-to-definition,
+find usages, project-wide rename, method override and argument snippets.
 
-This is a rewrite of the original Atom package for Pulsar. The Kite integration
-is gone, the CoffeeScript is now TypeScript, and the Jedi backend targets the
-modern API. See [CHANGELOG.md](CHANGELOG.md) for what changed and
-[docs/MIGRATION.md](docs/MIGRATION.md) if you are coming from 1.x.
+A rewrite of the original Atom `autocomplete-python` for Pulsar. The Kite
+integration and its telemetry are gone, the CoffeeScript is now TypeScript, and
+the Jedi backend targets the modern API. See [CHANGELOG.md](CHANGELOG.md) for
+what changed and [docs/MIGRATION.md](docs/MIGRATION.md) if you are coming from
+1.x.
+
+> Published as **autocomplete-python-pulsar**. The original
+> `autocomplete-python` name still points at the unmaintained Atom package.
 
 ## Requirements
 
@@ -25,7 +29,7 @@ is missing from it.
 ## Install
 
 ```sh
-ppm install autocomplete-python
+ppm install autocomplete-python-pulsar
 ```
 
 ## Features
@@ -51,7 +55,7 @@ ppm install autocomplete-python
 Most of the time there is nothing to configure. The package looks for
 interpreters the way the VS Code Python extension does, in this order:
 
-1. The interpreter you picked with **Autocomplete Python: Select Interpreter**
+1. The interpreter you picked with **Autocomplete Python Pulsar: Select Interpreter**
 2. `Python Executable Paths` from the settings
 3. `VIRTUAL_ENV` / `CONDA_PREFIX`: the environment Pulsar was launched from
 4. Virtual environments inside your project (`.venv`, `venv`, `env`, or any
@@ -61,7 +65,7 @@ interpreters the way the VS Code Python extension does, in this order:
 7. Well-known system locations
 
 Whichever it picked is shown in the status bar. Click it to choose another, or
-run **Autocomplete Python: Show Environment** to see the full list and the Jedi
+run **Autocomplete Python Pulsar: Show Environment** to see the full list and the Jedi
 version in use.
 
 Full details in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
@@ -70,18 +74,18 @@ Full details in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 | Command | Default binding |
 | --- | --- |
-| `autocomplete-python:go-to-definition` | `Ctrl+Alt+G` / `Alt+Cmd+G` |
-| `autocomplete-python:show-usages` | none |
-| `autocomplete-python:rename` | none |
-| `autocomplete-python:override-method` | none |
-| `autocomplete-python:complete-arguments` | none |
-| `autocomplete-python:select-interpreter` | none |
-| `autocomplete-python:show-environment` | none |
-| `autocomplete-python:restart-daemon` | none |
+| `autocomplete-python-pulsar:go-to-definition` | `Ctrl+Alt+G` / `Alt+Cmd+G` |
+| `autocomplete-python-pulsar:show-usages` | none |
+| `autocomplete-python-pulsar:rename` | none |
+| `autocomplete-python-pulsar:override-method` | none |
+| `autocomplete-python-pulsar:complete-arguments` | none |
+| `autocomplete-python-pulsar:select-interpreter` | none |
+| `autocomplete-python-pulsar:show-environment` | none |
+| `autocomplete-python-pulsar:restart-daemon` | none |
 
 ## Something not working?
 
-Start with **Autocomplete Python: Show Environment**: it reports the
+Start with **Autocomplete Python Pulsar: Show Environment**: it reports the
 interpreter and the Jedi version actually in use, which answers most
 reports. [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) covers the rest.
 
@@ -97,11 +101,16 @@ npm run build        # src/*.ts -> dist/
 npm test             # typecheck + TypeScript tests + Python tests
 ```
 
+## Support
+
+If this saves you time, you can
+[buy me a coffee](https://buymeacoffee.com/legendaryredfox).
+
 ## Credits
 
 Originally written by [Dmitry Sadovnychyi](https://github.com/sadovnychyi) and
-contributors. Completions come from [Jedi](https://github.com/davidhalter/jedi)
-by David Halter.
+contributors, as `autocomplete-python` for Atom. Completions come from
+[Jedi](https://github.com/davidhalter/jedi) by David Halter.
 
 ## License
 

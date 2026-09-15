@@ -3,10 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.debug = debug;
 exports.warning = warning;
 exports.error = error;
-const PREFIX = 'autocomplete-python:';
+const PREFIX = 'autocomplete-python-pulsar:';
 /** Only emitted when the `outputDebug` setting is on; it is very chatty. */
 function debug(...message) {
-    if (atom.config.get('autocomplete-python.outputDebug')) {
+    if (atom.config.get('autocomplete-python-pulsar.outputDebug')) {
         console.debug(PREFIX, ...message);
     }
 }

@@ -2,7 +2,7 @@ import { SelectListPanel, twoLineListItem } from './select-list-panel';
 import { openAndReveal, relativize } from '../editor/editor-utils';
 import type { Definition } from '../daemon/protocol';
 
-/** The picker shown by `autocomplete-python:go-to-definition`. */
+/** The picker shown by `autocomplete-python-pulsar:go-to-definition`. */
 export function createDefinitionsView(): SelectListPanel<Definition> {
   return new SelectListPanel<Definition>({
     loadingMessage: 'Looking for definitions…',

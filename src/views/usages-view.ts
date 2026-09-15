@@ -3,7 +3,7 @@ import { openAndReveal, relativize } from '../editor/editor-utils';
 import type { Usage } from '../daemon/protocol';
 
 /**
- * The picker shown by `autocomplete-python:show-usages`.
+ * The picker shown by `autocomplete-python-pulsar:show-usages`.
  *
  * Jedi reports usages with one-based lines, so every buffer position derived
  * from a usage subtracts one.

@@ -1,7 +1,7 @@
 # Configuration
 
-All settings live under **Settings → Packages → autocomplete-python**, or in
-`config.cson` under `"autocomplete-python"`.
+All settings live under **Settings → Packages → autocomplete-python-pulsar**, or in
+`config.cson` under `"autocomplete-python-pulsar"`.
 
 ## Settings
 
@@ -94,7 +94,7 @@ annotation is valid in a declaration but a syntax error at a call site.
 
 This needs Pulsar's bundled `snippets` package, which is enabled by default.
 Trigger it manually at any time with
-`autocomplete-python:complete-arguments`.
+`autocomplete-python-pulsar:complete-arguments`.
 
 Argument completion watches the buffer rather than raw keystrokes, so it works
 on any keyboard layout.

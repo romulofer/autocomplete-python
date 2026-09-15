@@ -57,7 +57,7 @@ const DISABLED_SELECTORS = (0, scope_helpers_1.parseSelectorList)([
  */
 exports.default = {
     priority: 1,
-    providerName: 'autocomplete-python',
+    providerName: 'autocomplete-python-pulsar',
     getSuggestionForWord(editor, text, range) {
         if (text === '.' || text === ':')
             return undefined;

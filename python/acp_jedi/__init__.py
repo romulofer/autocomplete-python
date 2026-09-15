@@ -1,4 +1,4 @@
-"""Jedi backend for the autocomplete-python Pulsar package.
+"""Jedi backend for the autocomplete-python-pulsar Pulsar package.
 
 The package is deliberately split so each piece can be used and tested on its
 own:

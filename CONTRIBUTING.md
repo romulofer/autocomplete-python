@@ -4,7 +4,7 @@
 
 ```sh
 git clone https://github.com/romulofer/autocomplete-python.git
-cd autocomplete-python
+cd autocomplete-python-pulsar
 npm install
 python3 -m pip install -r python/requirements-dev.txt
 npm run build
@@ -57,7 +57,7 @@ test.
 
 ## Reporting bugs
 
-Include the output of **Autocomplete Python: Show Environment**, your Pulsar
+Include the output of **Autocomplete Python Pulsar: Show Environment**, your Pulsar
 version, and a snippet that reproduces the problem. Tracebacks raised inside
 Jedi belong on [Jedi's tracker](https://github.com/davidhalter/jedi/issues); the
 notification tells you which is which.

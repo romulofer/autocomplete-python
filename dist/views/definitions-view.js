@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDefinitionsView = createDefinitionsView;
 const select_list_panel_1 = require("./select-list-panel");
 const editor_utils_1 = require("../editor/editor-utils");
-/** The picker shown by `autocomplete-python:go-to-definition`. */
+/** The picker shown by `autocomplete-python-pulsar:go-to-definition`. */
 function createDefinitionsView() {
     return new select_list_panel_1.SelectListPanel({
         loadingMessage: 'Looking for definitions…',

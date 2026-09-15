@@ -11,7 +11,7 @@ labels: bug
 ## Environment
 
 <!--
-Run "Autocomplete Python: Show Environment" from the command palette and paste
+Run "Autocomplete Python Pulsar: Show Environment" from the command palette and paste
 the notification here. It reports the interpreter and Jedi version in use, which
 answers most reports.
 -->
@@ -21,7 +21,7 @@ paste here
 ```
 
 - Pulsar version (`pulsar --version`):
-- autocomplete-python version:
+- autocomplete-python-pulsar version:
 - OS:
 
 ## Reproduction

@@ -2,7 +2,7 @@
 
 ## Start here
 
-Run **Autocomplete Python: Show Environment** from the command palette. It
+Run **Autocomplete Python Pulsar: Show Environment** from the command palette. It
 reports the interpreter in use, how it was found, the Jedi version, and every
 other candidate in priority order. Most reports are answered by that one
 notification.
@@ -16,10 +16,10 @@ does not, the package has not activated: it only activates once a file with the
 Nothing matching `python`, `python3` or `python3.x` was found anywhere the
 package looks.
 
-1. Run **Autocomplete Python: Select Interpreter** and pick one from the list.
+1. Run **Autocomplete Python Pulsar: Select Interpreter** and pick one from the list.
 2. If the list is empty, set `Python Executable Paths` to the full path of your
    interpreter, including the executable name.
-3. Run **Autocomplete Python: Restart Daemon**.
+3. Run **Autocomplete Python Pulsar: Restart Daemon**.
 
 Note that the package needs an executable *file*. A directory named `python` on
 your `PATH` is ignored.
@@ -74,7 +74,7 @@ Jedi sees whatever the chosen interpreter can import. Either:
 - It needs Pulsar's bundled `snippets` package enabled.
 - Arguments are only completed when nothing but whitespace or the closing paren
   follows the cursor: existing arguments are never rewritten.
-- Try `autocomplete-python:complete-arguments` directly. If that works but
+- Try `autocomplete-python-pulsar:complete-arguments` directly. If that works but
   typing `(` does not, file an issue with your keyboard layout.
 
 ## Completions are slow

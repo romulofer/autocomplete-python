@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RenameView = void 0;
 const atom_1 = require("atom");
 /**
- * The single-field prompt shown by `autocomplete-python:rename`.
+ * The single-field prompt shown by `autocomplete-python-pulsar:rename`.
  *
  * Built from a mini `TextEditor` and plain DOM. It used to extend `space-pen`'s
  * `View`, which is jQuery-backed and unmaintained.

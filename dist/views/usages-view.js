@@ -4,7 +4,7 @@ exports.createUsagesView = createUsagesView;
 const select_list_panel_1 = require("./select-list-panel");
 const editor_utils_1 = require("../editor/editor-utils");
 /**
- * The picker shown by `autocomplete-python:show-usages`.
+ * The picker shown by `autocomplete-python-pulsar:show-usages`.
  *
  * Jedi reports usages with one-based lines, so every buffer position derived
  * from a usage subtracts one.

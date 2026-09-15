@@ -17,7 +17,7 @@ function insertOverride(editor, method, row, column) {
         autoIndentNewline: false
     });
 }
-/** The picker shown by `autocomplete-python:override-method`. */
+/** The picker shown by `autocomplete-python-pulsar:override-method`. */
 function createOverrideView(onConfirm) {
     return new select_list_panel_1.SelectListPanel({
         loadingMessage: 'Looking for methods…',

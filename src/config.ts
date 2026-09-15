@@ -141,7 +141,7 @@ export const configSchema = {
     order: 0,
     title: 'Selected Interpreter',
     description:
-      'Full path to the interpreter chosen through **Autocomplete Python: Select Interpreter** or the status bar. Takes priority over everything below. Clear it to go back to automatic discovery.'
+      'Full path to the interpreter chosen through **Autocomplete Python Pulsar: Select Interpreter** or the status bar. Takes priority over everything below. Clear it to go back to automatic discovery.'
   },
   showDescriptions: {
     type: 'boolean',
@@ -157,7 +157,7 @@ export const configSchema = {
     enum: SNIPPET_MODES,
     title: 'Autocomplete Function Parameters',
     description:
-      'Fill in function arguments after typing the opening parenthesis. `required` inserts only parameters without a default. Use the `autocomplete-python:complete-arguments` command to trigger this manually. Requires the bundled `snippets` package.'
+      'Fill in function arguments after typing the opening parenthesis. `required` inserts only parameters without a default. Use the `autocomplete-python-pulsar:complete-arguments` command to trigger this manually. Requires the bundled `snippets` package.'
   },
   pythonPaths: {
     type: 'string',

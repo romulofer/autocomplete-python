@@ -113,5 +113,5 @@ Upstream behaviour kept as-is, or out of scope for a modernization.
 
 If one of these still affects you on Pulsar with 2.0, please open a fresh issue
 at <https://github.com/romulofer/autocomplete-python/issues> with the output of
-**Autocomplete Python: Show Environment**. Old Atom-era reports cannot be
+**Autocomplete Python Pulsar: Show Environment**. Old Atom-era reports cannot be
 verified.

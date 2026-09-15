@@ -54,7 +54,7 @@ const PYTHON_SCOPE_NAMES = ['source.python'];
 /** `dist/` is the build output; the daemon script sits beside it. */
 const DAEMON_SCRIPT = path.resolve(__dirname, '..', 'python', 'completion.py');
 
-const SETTINGS_URI = 'atom://config/packages/autocomplete-python';
+const SETTINGS_URI = 'atom://config/packages/autocomplete-python-pulsar';
 
 interface BufferPosition {
   row: number;
@@ -137,7 +137,7 @@ export class PythonProvider {
   /** Current settings, defaulted and coerced. */
   settings(): PythonSettings {
     return resolveSettings(
-      (atom.config.get('autocomplete-python') ?? {}) as RawSettings
+      (atom.config.get('autocomplete-python-pulsar') ?? {}) as RawSettings
     );
   }
 
@@ -201,11 +201,11 @@ export class PythonProvider {
     const editorSelector = 'atom-text-editor[data-grammar~=python]';
     this.disposables.add(
       atom.commands.add(editorSelector, {
-        'autocomplete-python:go-to-definition': () => void this.goToDefinition(),
-        'autocomplete-python:show-usages': () => void this.showUsages(),
-        'autocomplete-python:override-method': () => void this.overrideMethod(),
-        'autocomplete-python:rename': () => void this.rename(),
-        'autocomplete-python:complete-arguments': () => {
+        'autocomplete-python-pulsar:go-to-definition': () => void this.goToDefinition(),
+        'autocomplete-python-pulsar:show-usages': () => void this.showUsages(),
+        'autocomplete-python-pulsar:override-method': () => void this.overrideMethod(),
+        'autocomplete-python-pulsar:rename': () => void this.rename(),
+        'autocomplete-python-pulsar:complete-arguments': () => {
           const editor = atom.workspace.getActiveTextEditor();
           if (!editor) return;
           void this.completeArguments(
@@ -216,10 +216,10 @@ export class PythonProvider {
         }
       }),
       atom.commands.add('atom-workspace', {
-        'autocomplete-python:restart-daemon': () => this.restartDaemon(),
-        'autocomplete-python:select-interpreter': () =>
+        'autocomplete-python-pulsar:restart-daemon': () => this.restartDaemon(),
+        'autocomplete-python-pulsar:select-interpreter': () =>
           void this.selectInterpreter(),
-        'autocomplete-python:show-environment': () => this.showEnvironment()
+        'autocomplete-python-pulsar:show-environment': () => this.showEnvironment()
       })
     );
   }
@@ -227,23 +227,23 @@ export class PythonProvider {
   private observeConfig(): void {
     this.disposables.add(
       atom.config.observe(
-        'autocomplete-python.suggestionPriority',
+        'autocomplete-python-pulsar.suggestionPriority',
         (value: unknown) => {
           this.suggestionPriority = Number(value) || 3;
         }
       ),
-      atom.config.onDidChange('autocomplete-python.triggerCompletionRegex', () =>
+      atom.config.onDidChange('autocomplete-python-pulsar.triggerCompletionRegex', () =>
         this.updateTriggerCompletionRegex()
       ),
       // Anything that changes which interpreter or which packages Jedi sees
       // invalidates both the interpreter lookup and every cached response.
-      atom.config.onDidChange('autocomplete-python.pythonPaths', () =>
+      atom.config.onDidChange('autocomplete-python-pulsar.pythonPaths', () =>
         this.reloadDaemon()
       ),
-      atom.config.onDidChange('autocomplete-python.extraPaths', () =>
+      atom.config.onDidChange('autocomplete-python-pulsar.extraPaths', () =>
         this.reloadDaemon()
       ),
-      atom.config.onDidChange('autocomplete-python.selectedInterpreter', () =>
+      atom.config.onDidChange('autocomplete-python-pulsar.selectedInterpreter', () =>
         this.reloadDaemon()
       ),
       atom.project.onDidChangePaths(() => this.reloadDaemon())
@@ -268,7 +268,7 @@ export class PythonProvider {
     if (!error) return;
 
     atomNotifier.warning(
-      'autocomplete-python: invalid completion trigger regex, using the default.',
+      'autocomplete-python-pulsar: invalid completion trigger regex, using the default.',
       { detail: error, dismissable: true }
     );
   }
@@ -654,7 +654,7 @@ export class PythonProvider {
   restartDaemon(): void {
     this.reloadDaemon();
     atomNotifier.success(
-      'autocomplete-python: completion daemon restarted.'
+      'autocomplete-python-pulsar: completion daemon restarted.'
     );
   }
 
@@ -668,12 +668,12 @@ export class PythonProvider {
     const view = (this.interpreterView = createInterpreterView(
       (interpreter: DiscoveredInterpreter) => {
         atom.config.set(
-          'autocomplete-python.selectedInterpreter',
+          'autocomplete-python-pulsar.selectedInterpreter',
           interpreter.filePath
         );
         this.reloadDaemon();
         atomNotifier.success(
-          `autocomplete-python is now using ${interpreter.filePath}`
+          `autocomplete-python-pulsar is now using ${interpreter.filePath}`
         );
       }
     ));
@@ -694,8 +694,8 @@ export class PythonProvider {
     this.statusTooltip?.dispose();
     this.statusTooltip = this.statusView.setTooltip(
       interpreter
-        ? `autocomplete-python: ${interpreter.filePath} (${SOURCE_LABELS[interpreter.source]}). Click to change.`
-        : 'autocomplete-python found no Python interpreter. Click to choose one.'
+        ? `autocomplete-python-pulsar: ${interpreter.filePath} (${SOURCE_LABELS[interpreter.source]}). Click to change.`
+        : 'autocomplete-python-pulsar found no Python interpreter. Click to choose one.'
     );
   }
 
@@ -704,7 +704,7 @@ export class PythonProvider {
     const chosen = this.interpreters.best();
     const all = this.interpreters.all();
 
-    atomNotifier.info('autocomplete-python environment', {
+    atomNotifier.info('autocomplete-python-pulsar environment', {
       description: chosen
         ? `Using \`${chosen.filePath}\` (${SOURCE_LABELS[chosen.source]}).`
         : 'No Python interpreter found.',

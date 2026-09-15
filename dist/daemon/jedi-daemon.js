@@ -257,7 +257,7 @@ class JediDaemon {
                 id: protocol_1.FATAL_ERROR_ID,
                 results: [],
                 error: 'jedi-missing',
-                message: 'autocomplete-python could not import Jedi.',
+                message: 'autocomplete-python-pulsar could not import Jedi.',
                 detail: chunk
             });
             return;
@@ -266,10 +266,10 @@ class JediDaemon {
             return;
         const fromJedi = chunk.includes('jedi');
         this.options.notifier.warning(fromJedi
-            ? 'autocomplete-python: error raised inside Jedi'
-            : 'autocomplete-python: traceback from the completion daemon', {
+            ? 'autocomplete-python-pulsar: error raised inside Jedi'
+            : 'autocomplete-python-pulsar: traceback from the completion daemon', {
             description: fromJedi
-                ? 'Report this to the Jedi issue tracker rather than to autocomplete-python. Turn off `Output Provider Errors` to stop seeing these.'
+                ? 'Report this to the Jedi issue tracker rather than to autocomplete-python-pulsar. Turn off `Output Provider Errors` to stop seeing these.'
                 : 'Turn off `Output Provider Errors` to stop seeing these.',
             detail: chunk,
             dismissable: true
@@ -301,8 +301,8 @@ class JediDaemon {
             return;
         this.reportedNoInterpreter = true;
         log.warning('No python interpreter found', detail);
-        this.options.notifier.warning('autocomplete-python could not find a Python interpreter.', {
-            description: 'Run **Autocomplete Python: Select Interpreter**, or set `Python Executable Paths` in the package settings.',
+        this.options.notifier.warning('autocomplete-python-pulsar could not find a Python interpreter.', {
+            description: 'Run **Autocomplete Python Pulsar: Select Interpreter**, or set `Python Executable Paths` in the package settings.',
             detail: detail ?? '',
             dismissable: true,
             buttons: this.settingsButton()
@@ -315,8 +315,8 @@ class JediDaemon {
         const interpreter = this.options.interpreters.bestPath() ?? 'python3';
         const descriptions = {
             'jedi-missing': `Install it for the interpreter in use:\n\n    ${interpreter} -m pip install --upgrade "jedi>=0.19"`,
-            'jedi-too-old': `autocomplete-python needs Jedi 0.19 or newer:\n\n    ${interpreter} -m pip install --upgrade "jedi>=0.19"`,
-            'python-too-old': 'autocomplete-python needs Python 3.10 or newer. Choose a newer interpreter with **Autocomplete Python: Select Interpreter**.',
+            'jedi-too-old': `autocomplete-python-pulsar needs Jedi 0.19 or newer:\n\n    ${interpreter} -m pip install --upgrade "jedi>=0.19"`,
+            'python-too-old': 'autocomplete-python-pulsar needs Python 3.10 or newer. Choose a newer interpreter with **Autocomplete Python Pulsar: Select Interpreter**.',
             unknown: 'The completion daemon failed to start.'
         };
         log.error(error.message, error.detail);

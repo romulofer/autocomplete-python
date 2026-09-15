@@ -1,4 +1,4 @@
-# AGENTS.md - autocomplete-python
+# AGENTS.md - autocomplete-python-pulsar
 
 Guidance for AI agents working in this repository. Read this before touching code.
 

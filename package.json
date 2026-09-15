@@ -1,8 +1,8 @@
 {
-  "name": "autocomplete-python",
+  "name": "autocomplete-python-pulsar",
   "main": "./dist/main.js",
   "version": "2.0.0",
-  "description": "Jedi-powered Python completions, go-to-definition, find usages, method override and rename for Pulsar.",
+  "description": "Python IDE features for Pulsar, powered by Jedi: completions, go-to-definition, find usages, project-wide rename, method override and argument snippets.",
   "keywords": [
     "python",
     "autocomplete",
@@ -74,5 +74,6 @@
         "^1.0.0": "consumeStatusBar"
       }
     }
-  }
+  },
+  "funding": "https://buymeacoffee.com/legendaryredfox"
 }

@@ -1,10 +1,10 @@
 # Go-to-definition matches the binding Pulsar's own symbols-view uses for
 # "go to declaration" on each platform.
 '.platform-darwin atom-text-editor[data-grammar~=python]:not(.mini)':
-  'alt-cmd-g': 'autocomplete-python:go-to-definition'
+  'alt-cmd-g': 'autocomplete-python-pulsar:go-to-definition'
 
 '.platform-linux atom-text-editor[data-grammar~=python]:not(.mini)':
-  'ctrl-alt-g': 'autocomplete-python:go-to-definition'
+  'ctrl-alt-g': 'autocomplete-python-pulsar:go-to-definition'
 
 '.platform-win32 atom-text-editor[data-grammar~=python]:not(.mini)':
-  'ctrl-alt-g': 'autocomplete-python:go-to-definition'
+  'ctrl-alt-g': 'autocomplete-python-pulsar:go-to-definition'

@@ -3,11 +3,11 @@
     {
       'label': 'Python'
       'submenu': [
-        { 'label': 'Go To Definition', 'command': 'autocomplete-python:go-to-definition' }
-        { 'label': 'Show Usages', 'command': 'autocomplete-python:show-usages' }
-        { 'label': 'Rename…', 'command': 'autocomplete-python:rename' }
-        { 'label': 'Override Method…', 'command': 'autocomplete-python:override-method' }
-        { 'label': 'Complete Arguments', 'command': 'autocomplete-python:complete-arguments' }
+        { 'label': 'Go To Definition', 'command': 'autocomplete-python-pulsar:go-to-definition' }
+        { 'label': 'Show Usages', 'command': 'autocomplete-python-pulsar:show-usages' }
+        { 'label': 'Rename…', 'command': 'autocomplete-python-pulsar:rename' }
+        { 'label': 'Override Method…', 'command': 'autocomplete-python-pulsar:override-method' }
+        { 'label': 'Complete Arguments', 'command': 'autocomplete-python-pulsar:complete-arguments' }
       ]
     }
   ]
@@ -19,14 +19,14 @@
       {
         'label': 'Autocomplete Python'
         'submenu': [
-          { 'label': 'Select Interpreter…', 'command': 'autocomplete-python:select-interpreter' }
-          { 'label': 'Show Environment', 'command': 'autocomplete-python:show-environment' }
-          { 'label': 'Restart Daemon', 'command': 'autocomplete-python:restart-daemon' }
+          { 'label': 'Select Interpreter…', 'command': 'autocomplete-python-pulsar:select-interpreter' }
+          { 'label': 'Show Environment', 'command': 'autocomplete-python-pulsar:show-environment' }
+          { 'label': 'Restart Daemon', 'command': 'autocomplete-python-pulsar:restart-daemon' }
           { 'type': 'separator' }
-          { 'label': 'Go To Definition', 'command': 'autocomplete-python:go-to-definition' }
-          { 'label': 'Show Usages', 'command': 'autocomplete-python:show-usages' }
-          { 'label': 'Rename…', 'command': 'autocomplete-python:rename' }
-          { 'label': 'Override Method…', 'command': 'autocomplete-python:override-method' }
+          { 'label': 'Go To Definition', 'command': 'autocomplete-python-pulsar:go-to-definition' }
+          { 'label': 'Show Usages', 'command': 'autocomplete-python-pulsar:show-usages' }
+          { 'label': 'Rename…', 'command': 'autocomplete-python-pulsar:rename' }
+          { 'label': 'Override Method…', 'command': 'autocomplete-python-pulsar:override-method' }
         ]
       }
     ]
