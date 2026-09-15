@@ -50,6 +50,9 @@ interpreter discovery can be exercised against a fake filesystem.
 | `editor/completion-rules.ts` | When to complete, and how to filter results. |
 | `editor/override.ts` | Generating an override stub. |
 | `editor/editor-utils.ts` | Small editor helpers (open-and-reveal, indentation). |
+| `run/command.ts` | Building the command line for "run this file". Pure. |
+| `run/runner.ts` | Run lifecycle: start, stream, stop, exit. Spawn injected. |
+| `run/spawn.ts` | The real `child_process` adapter. |
 | `views/*` | Modal pickers, the rename prompt, tooltips, the status bar tile. |
 
 ## Python package

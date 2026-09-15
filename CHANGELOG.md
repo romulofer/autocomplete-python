@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+
+- **Run the current file** with the interpreter the package discovered, from a
+  button in the status bar, `F5`, the context menu, or
+  `autocomplete-python-pulsar:run-file`. Running it from here rather than from a
+  generic task runner means the script runs in the same environment the
+  completions came from.
+- **A Python Output pane** in the bottom dock: stdout and stderr as the script
+  produces them, with the command, the working directory and the exit code in
+  the header. Output is unbuffered, and the pane keeps the last 5000 lines.
+- **Stop**, from the same status bar button while a script is running, from the
+  pane, or with `Shift+F5`. Starting a run while one is going stops the old one
+  first. A script that ignores `SIGTERM` is killed after two seconds.
+- Settings: `runArguments`, `runWorkingDirectory` (`file` or `project`),
+  `saveBeforeRun`, `clearOutputOnRun` and `showOutputOnRun`.
+
+Scripts are spawned directly with no shell involved, so nothing in
+`runArguments` is interpreted as a shell operator.
+
 ## 2.0.0
 
 A rewrite for Pulsar and modern Python. See

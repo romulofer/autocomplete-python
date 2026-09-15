@@ -51,6 +51,11 @@ const interpreter_view_1 = require("./views/interpreter-view");
 const rename_view_1 = require("./views/rename-view");
 const tooltips_1 = require("./views/tooltips");
 const status_bar_view_1 = require("./views/status-bar-view");
+const run_button_1 = require("./views/run-button");
+const run_panel_1 = require("./views/run-panel");
+const runner_1 = require("./run/runner");
+const spawn_1 = require("./run/spawn");
+const command_1 = require("./run/command");
 /** The scope selector autocomplete-plus uses to pick this provider. */
 const SELECTOR = '.source.python';
 /** Where completions are suppressed entirely. */
@@ -108,6 +113,9 @@ class PythonProvider {
     statusView = null;
     statusTooltip = null;
     cachedLastSuggestions = [];
+    runner = new runner_1.PythonRunner(spawn_1.spawnPythonProcess);
+    runButton = null;
+    runPanel = null;
     /** Exposed for the specs and for bug reports. */
     get lastSuggestions() {
         return this.cachedLastSuggestions;
@@ -130,8 +138,37 @@ class PythonProvider {
         this.registerCommands();
         this.observeConfig();
         this.disposables.add(atom.workspace.observeTextEditors((editor) => this.observeEditor(editor)));
+        this.disposables.add(atom.workspace.onDidChangeActiveTextEditor(() => this.refreshRunButton()));
+        this.registerRunPanelOpener();
+        this.observeRunner();
         this.refreshStatusView();
+        this.refreshRunButton();
         return this;
+    }
+    /**
+     * Route every runner event to the output pane and the status bar button, so
+     * both stay in step with the process without knowing about each other.
+     */
+    observeRunner() {
+        const unsubscribe = this.runner.onEvent((event) => {
+            this.runPanel?.handle(event);
+            if (event.type === 'started')
+                this.runButton?.setRunning(true);
+            if (event.type === 'exited' || event.type === 'failed') {
+                this.runButton?.setRunning(false);
+            }
+            if (event.type === 'failed') {
+                atom_host_1.atomNotifier.error('autocomplete-python-pulsar could not run the file.', {
+                    description: event.message,
+                    dismissable: true
+                });
+            }
+        });
+        this.disposables.add({ dispose: unsubscribe });
+    }
+    /** Lets the output pane be reopened, and restored, as a normal dock item. */
+    registerRunPanelOpener() {
+        this.disposables.add(atom.workspace.addOpener((uri) => uri === run_panel_1.RUN_PANEL_URI ? this.ensureRunPanel() : undefined));
     }
     dispose() {
         this.disposables.dispose();
@@ -150,6 +187,11 @@ class PythonProvider {
         this.statusTooltip = null;
         this.statusView?.destroy();
         this.statusView = null;
+        this.runner.dispose();
+        this.runButton?.destroy();
+        this.runButton = null;
+        this.runPanel?.destroy();
+        this.runPanel = null;
         this.activated = false;
     }
     setSnippetsManager(snippetsManager) {
@@ -161,7 +203,10 @@ class PythonProvider {
             void this.selectInterpreter();
         });
         this.statusView.attach(statusBar);
+        this.runButton ??= new run_button_1.RunButtonView(() => this.toggleRun());
+        this.runButton.attach(statusBar);
         this.refreshStatusView();
+        this.refreshRunButton();
     }
     // --- setup --------------------------------------------------------------
     registerCommands() {
@@ -171,6 +216,7 @@ class PythonProvider {
             'autocomplete-python-pulsar:show-usages': () => void this.showUsages(),
             'autocomplete-python-pulsar:override-method': () => void this.overrideMethod(),
             'autocomplete-python-pulsar:rename': () => void this.rename(),
+            'autocomplete-python-pulsar:run-file': () => void this.runActiveFile(),
             'autocomplete-python-pulsar:complete-arguments': () => {
                 const editor = atom.workspace.getActiveTextEditor();
                 if (!editor)
@@ -179,6 +225,8 @@ class PythonProvider {
             }
         }), atom.commands.add('atom-workspace', {
             'autocomplete-python-pulsar:restart-daemon': () => this.restartDaemon(),
+            'autocomplete-python-pulsar:stop': () => this.runner.stop(),
+            'autocomplete-python-pulsar:toggle-output': () => void atom.workspace.toggle(run_panel_1.RUN_PANEL_URI),
             'autocomplete-python-pulsar:select-interpreter': () => void this.selectInterpreter(),
             'autocomplete-python-pulsar:show-environment': () => this.showEnvironment()
         }));
@@ -449,6 +497,75 @@ class PythonProvider {
             return;
         }
         this.snippetsManager.insertSnippet(response.arguments, editor);
+    }
+    // --- running ------------------------------------------------------------
+    ensureRunPanel() {
+        this.runPanel ??= new run_panel_1.RunPanel(() => this.runner.stop());
+        return this.runPanel;
+    }
+    /** The status bar button and its keybinding share this. */
+    toggleRun() {
+        if (this.runner.isRunning) {
+            this.runner.stop();
+            return;
+        }
+        void this.runActiveFile();
+    }
+    /**
+     * Run the active Python file with the interpreter the package discovered,
+     * which is the point of putting this here rather than in a generic runner:
+     * the script runs in the same environment the completions came from.
+     */
+    async runActiveFile() {
+        const editor = atom.workspace.getActiveTextEditor();
+        if (!editor || !isPythonEditor(editor)) {
+            atom_host_1.atomNotifier.warning('autocomplete-python-pulsar: no Python file is active.');
+            return;
+        }
+        const settings = this.settings();
+        if (settings.saveBeforeRun && editor.isModified()) {
+            await editor.save();
+        }
+        const filePath = editor.getPath();
+        if (!filePath) {
+            atom_host_1.atomNotifier.warning('autocomplete-python-pulsar: save the file before running it.');
+            return;
+        }
+        const interpreter = this.interpreters.bestPath();
+        if (!interpreter) {
+            atom_host_1.atomNotifier.warning('autocomplete-python-pulsar could not find a Python interpreter to run with.', {
+                description: 'Run **Autocomplete Python Pulsar: Select Interpreter** and try again.',
+                dismissable: true
+            });
+            return;
+        }
+        const panel = this.ensureRunPanel();
+        if (settings.clearOutputOnRun)
+            panel.clear();
+        if (settings.showOutputOnRun) {
+            // Keep focus in the editor: the user is running code, not reading yet.
+            await atom.workspace.open(run_panel_1.RUN_PANEL_URI, {
+                activatePane: false,
+                activateItem: true,
+                searchAllPanes: true
+            });
+            // Opening the item is not enough when the dock itself is hidden.
+            atom.workspace.getBottomDock().show();
+        }
+        this.runner.run({
+            interpreter,
+            filePath,
+            scriptArguments: (0, command_1.splitArguments)(settings.runArguments),
+            projectPaths: atom.project.getPaths(),
+            workingDirectory: settings.runWorkingDirectory
+        });
+    }
+    /** The button is only meaningful while a Python file is in front. */
+    refreshRunButton() {
+        if (!this.runButton)
+            return;
+        const editor = atom.workspace.getActiveTextEditor();
+        this.runButton.setVisible(Boolean(editor && isPythonEditor(editor)));
     }
     // --- diagnostics --------------------------------------------------------
     restartDaemon() {

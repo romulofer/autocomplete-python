@@ -48,6 +48,9 @@ ppm install autocomplete-python-pulsar
   `super()`-calling stub.
 - **Tooltips** showing the docstring of the symbol under the cursor. Off by
   default.
+- **Run button** in the status bar: run the current file with the interpreter
+  the package discovered, with output in a dock pane. `F5`, or click the button
+  again to stop.
 - **Interpreter picker** in the status bar, listing every environment found.
 
 ## Choosing an interpreter
@@ -74,6 +77,9 @@ Full details in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 | Command | Default binding |
 | --- | --- |
+| `autocomplete-python-pulsar:run-file` | `F5`, `Ctrl+Alt+R` / `Alt+Cmd+R` |
+| `autocomplete-python-pulsar:stop` | `Shift+F5` |
+| `autocomplete-python-pulsar:toggle-output` | none |
 | `autocomplete-python-pulsar:go-to-definition` | `Ctrl+Alt+G` / `Alt+Cmd+G` |
 | `autocomplete-python-pulsar:show-usages` | none |
 | `autocomplete-python-pulsar:rename` | none |

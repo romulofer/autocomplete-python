@@ -7,6 +7,9 @@
  */
 
 import * as path from 'path';
+import type { WorkingDirectoryMode } from './run/command';
+
+export type { WorkingDirectoryMode };
 
 export type SnippetMode = 'none' | 'all' | 'required';
 
@@ -29,11 +32,20 @@ export interface PythonSettings {
   daemonIdleTimeout: number;
   outputProviderErrors: boolean;
   outputDebug: boolean;
+
+  // Running a file.
+  runArguments: string;
+  runWorkingDirectory: WorkingDirectoryMode;
+  saveBeforeRun: boolean;
+  clearOutputOnRun: boolean;
+  showOutputOnRun: boolean;
 }
+
 
 export type RawSettings = Partial<Record<keyof PythonSettings, unknown>>;
 
 const SNIPPET_MODES: SnippetMode[] = ['none', 'all', 'required'];
+const WORKING_DIRECTORY_MODES: WorkingDirectoryMode[] = ['file', 'project'];
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
@@ -110,7 +122,16 @@ export function resolveSettings(raw: RawSettings = {}): PythonSettings {
     suggestionPriority: asNumber(raw.suggestionPriority, 3),
     daemonIdleTimeout: Math.max(0, asNumber(raw.daemonIdleTimeout, 10)),
     outputProviderErrors: asBoolean(raw.outputProviderErrors, false),
-    outputDebug: asBoolean(raw.outputDebug, false)
+    outputDebug: asBoolean(raw.outputDebug, false),
+    runArguments: asString(raw.runArguments),
+    runWorkingDirectory: WORKING_DIRECTORY_MODES.includes(
+      asString(raw.runWorkingDirectory, 'file') as WorkingDirectoryMode
+    )
+      ? (asString(raw.runWorkingDirectory, 'file') as WorkingDirectoryMode)
+      : 'file',
+    saveBeforeRun: asBoolean(raw.saveBeforeRun, true),
+    clearOutputOnRun: asBoolean(raw.clearOutputOnRun, true),
+    showOutputOnRun: asBoolean(raw.showOutputOnRun, true)
   };
 }
 
@@ -233,6 +254,45 @@ export const configSchema = {
     title: 'Output Provider Errors',
     description:
       'Show tracebacks coming from the completion daemon as notifications. Errors that stop the package from working are always shown.'
+  },
+  runArguments: {
+    type: 'string',
+    default: '',
+    order: 13,
+    title: 'Run: Script Arguments',
+    description:
+      'Arguments passed to the script when you run it. Quoted runs are kept together; no shell is involved.'
+  },
+  runWorkingDirectory: {
+    type: 'string',
+    default: 'file',
+    enum: WORKING_DIRECTORY_MODES,
+    order: 14,
+    title: 'Run: Working Directory',
+    description:
+      '`file` runs from the file\'s own directory, matching `python script.py` in a terminal. `project` runs from the project root, matching how the code usually runs in production.'
+  },
+  saveBeforeRun: {
+    type: 'boolean',
+    default: true,
+    order: 15,
+    title: 'Run: Save Before Running',
+    description: 'Save the file first, so you never run a stale version of it.'
+  },
+  clearOutputOnRun: {
+    type: 'boolean',
+    default: true,
+    order: 16,
+    title: 'Run: Clear Output On Each Run',
+    description: 'Empty the output pane when a new run starts.'
+  },
+  showOutputOnRun: {
+    type: 'boolean',
+    default: true,
+    order: 17,
+    title: 'Run: Show Output On Run',
+    description:
+      'Reveal the output pane when a run starts. Focus stays in the editor either way.'
   },
   outputDebug: {
     type: 'boolean',

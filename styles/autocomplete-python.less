@@ -46,3 +46,63 @@ autocomplete-python-suggestion {
     margin-bottom: @component-padding / 2;
   }
 }
+
+// The run/stop button in the status bar.
+.autocomplete-python-run-button {
+  cursor: pointer;
+  padding: 0 0.4em;
+
+  &.is-running {
+    color: @text-color-error;
+  }
+}
+
+// The bottom-dock output pane.
+.autocomplete-python-run-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 6em;
+
+  .autocomplete-python-run-header {
+    display: flex;
+    align-items: center;
+    gap: @component-padding;
+    padding: (@component-padding / 2) @component-padding;
+    border-bottom: 1px solid @pane-item-border-color;
+    background-color: @tool-panel-background-color;
+
+    .command {
+      font-family: @font-family;
+      color: @text-color-highlight;
+      // The command can be long; the status and buttons keep their space.
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status {
+      color: @text-color-subtle;
+      margin-left: auto;
+      white-space: nowrap;
+
+      &[data-state="running"] { color: @text-color-info; }
+      &[data-state="ok"]      { color: @text-color-success; }
+      &[data-state="error"]   { color: @text-color-error; }
+      &[data-state="stopped"] { color: @text-color-warning; }
+    }
+  }
+
+  .autocomplete-python-run-output {
+    flex: 1;
+    margin: 0;
+    padding: @component-padding;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: @font-family;
+    background-color: @tool-panel-background-color;
+
+    .stderr { color: @text-color-error; }
+  }
+}

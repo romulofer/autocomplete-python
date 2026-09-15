@@ -20,6 +20,11 @@ All settings live under **Settings → Packages → autocomplete-python-pulsar**
 | `daemonIdleTimeout` | `10` | Minutes of inactivity before the Python process is shut down. `0` keeps it alive for the session. |
 | `outputProviderErrors` | `false` | Surface daemon tracebacks as notifications. Fatal errors are always shown. |
 | `outputDebug` | `false` | Verbose logging to the developer console. Slows the editor. |
+| `runArguments` | `''` | Arguments passed to the script when you run it. |
+| `runWorkingDirectory` | `file` | `file` runs from the file's directory, `project` from the project root. |
+| `saveBeforeRun` | `true` | Save the file before running it. |
+| `clearOutputOnRun` | `true` | Empty the output pane when a run starts. |
+| `showOutputOnRun` | `true` | Reveal the output pane when a run starts. |
 
 ## Interpreter discovery
 
@@ -98,3 +103,30 @@ Trigger it manually at any time with
 
 Argument completion watches the buffer rather than raw keystrokes, so it works
 on any keyboard layout.
+
+## Running a file
+
+`autocomplete-python-pulsar:run-file` (`F5`, or the button in the status bar)
+runs the active file with **the interpreter the package discovered**. That is
+the point of running it from here rather than from a generic task runner: the
+script runs in the same environment the completions came from, so an import that
+resolves in the editor also resolves at runtime.
+
+Output goes to a **Python Output** pane in the bottom dock: stdout in the normal
+colour, stderr in red, and a header with the command, the working directory and
+the exit code. The pane keeps the last 5000 lines.
+
+The status bar button doubles as the run indicator. While a script is going it
+turns into a stop button; `Shift+F5` and the Stop button in the pane do the same
+thing. Starting a run while one is already going stops the old one first.
+
+Scripts are spawned directly, with no shell involved, so nothing in
+`Run: Script Arguments` is interpreted as a shell operator. Quoted runs are kept
+together:
+
+```
+--input "/tmp/my data.csv" --verbose
+```
+
+Output is unbuffered, so it appears as the script produces it rather than all at
+once when it exits.

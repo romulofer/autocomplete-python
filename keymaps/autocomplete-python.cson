@@ -1,10 +1,24 @@
-# Go-to-definition matches the binding Pulsar's own symbols-view uses for
-# "go to declaration" on each platform.
+# CSON does not allow a selector to appear twice, so every binding for a given
+# selector has to live in one block.
+#
+# Go-to-definition keeps the binding the Atom package used. F5 is the run
+# convention users bring from other editors, with a ctrl/cmd-alt pair for
+# keyboards and window managers where F5 is already taken.
+
 '.platform-darwin atom-text-editor[data-grammar~=python]:not(.mini)':
   'alt-cmd-g': 'autocomplete-python-pulsar:go-to-definition'
+  'f5': 'autocomplete-python-pulsar:run-file'
+  'alt-cmd-r': 'autocomplete-python-pulsar:run-file'
 
 '.platform-linux atom-text-editor[data-grammar~=python]:not(.mini)':
   'ctrl-alt-g': 'autocomplete-python-pulsar:go-to-definition'
+  'f5': 'autocomplete-python-pulsar:run-file'
+  'ctrl-alt-r': 'autocomplete-python-pulsar:run-file'
 
 '.platform-win32 atom-text-editor[data-grammar~=python]:not(.mini)':
   'ctrl-alt-g': 'autocomplete-python-pulsar:go-to-definition'
+  'f5': 'autocomplete-python-pulsar:run-file'
+  'ctrl-alt-r': 'autocomplete-python-pulsar:run-file'
+
+'atom-workspace':
+  'shift-f5': 'autocomplete-python-pulsar:stop'

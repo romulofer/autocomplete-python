@@ -3,6 +3,8 @@
     {
       'label': 'Python'
       'submenu': [
+        { 'label': 'Run File', 'command': 'autocomplete-python-pulsar:run-file' }
+        { 'type': 'separator' }
         { 'label': 'Go To Definition', 'command': 'autocomplete-python-pulsar:go-to-definition' }
         { 'label': 'Show Usages', 'command': 'autocomplete-python-pulsar:show-usages' }
         { 'label': 'Rename…', 'command': 'autocomplete-python-pulsar:rename' }
@@ -19,6 +21,10 @@
       {
         'label': 'Autocomplete Python'
         'submenu': [
+          { 'label': 'Run File', 'command': 'autocomplete-python-pulsar:run-file' }
+          { 'label': 'Stop', 'command': 'autocomplete-python-pulsar:stop' }
+          { 'label': 'Toggle Output Pane', 'command': 'autocomplete-python-pulsar:toggle-output' }
+          { 'type': 'separator' }
           { 'label': 'Select Interpreter…', 'command': 'autocomplete-python-pulsar:select-interpreter' }
           { 'label': 'Show Environment', 'command': 'autocomplete-python-pulsar:show-environment' }
           { 'label': 'Restart Daemon', 'command': 'autocomplete-python-pulsar:restart-daemon' }

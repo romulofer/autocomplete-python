@@ -127,6 +127,12 @@ npm test             # typecheck + both suites; run this before saying you are d
 - **Windows paths in tests.** `interpreters/locators.ts` picks `path.win32` or
   `path.posix` from `host.env.platform` rather than using the process default,
   so Windows layouts can be tested from Linux. Keep using `pathFor(host)`.
+- **A dock item needs `getElement()`.** Pulsar resolves a pane item's view
+  through `atom.views.getView`. `RunPanel` was opened but never rendered until
+  that method existed, and the failure is silent: no error, just an empty dock.
+- **Keymap and menu CSON cannot repeat a selector.** Every binding for one
+  selector goes in a single block, or the whole package fails to load with
+  `Duplicate key`.
 - **Bun and `src/provider.ts`.** Importing the provider into a Bun test has
   segfaulted the runner. Test pure modules directly instead; that is what
   `editor/completion-rules.ts` exists for.
