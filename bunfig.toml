@@ -1,0 +1,3 @@
+[test]
+# Stubs for the modules only Pulsar can provide, plus the `atom` global.
+preload = ["./test/setup.ts"]

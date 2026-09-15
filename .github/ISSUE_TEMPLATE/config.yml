@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Wrong or missing completions
+    url: https://github.com/davidhalter/jedi/issues
+    about: Completion results come from Jedi. If the suggestion itself is wrong, report it there.
+  - name: Troubleshooting guide
+    url: https://github.com/romulofer/autocomplete-python/blob/master/docs/TROUBLESHOOTING.md
+    about: Interpreter not found, Jedi not found, no completions - start here.

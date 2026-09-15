@@ -1,69 +1,108 @@
-# Python Autocomplete Package [![Build Status](https://travis-ci.org/autocomplete-python/autocomplete-python.svg?branch=master)](https://travis-ci.org/autocomplete-python/autocomplete-python)
+# autocomplete-python
 
-Python packages, variables, methods and functions with their arguments autocompletion in [Atom](http://atom.io) powered by your choice of [Jedi](https://github.com/davidhalter/jedi) or [Kite](https://kite.com).
+Python completions, go-to-definition, find-usages, method override and
+project-wide rename for [Pulsar](https://pulsar-edit.dev), powered by
+[Jedi](https://github.com/davidhalter/jedi).
 
-_Please note that this package is sponsored by Kite._  More info is provided during the install screens of autocomplete-python.
+This is a rewrite of the original Atom package for Pulsar. The Kite integration
+is gone, the CoffeeScript is now TypeScript, and the Jedi backend targets the
+modern API. See [CHANGELOG.md](CHANGELOG.md) for what changed and
+[docs/MIGRATION.md](docs/MIGRATION.md) if you are coming from 1.x.
 
-See [releases](https://github.com/sadovnychyi/autocomplete-python/releases) for release notes.
+## Requirements
 
-Jedi-driven release notes follow.  For more about using the Kite completions engine see [kite.com](https://kite.com).
-
-The package requires a recent version of [`jedi`](https://pypi.org/project/jedi/):
+- Pulsar 1.100 or newer
+- Python 3.10 or newer
+- Jedi 0.19 or newer, installed for the interpreter you want completions from:
 
 ```sh
-pip install jedi
+python3 -m pip install --upgrade "jedi>=0.19"
 ```
 
-## Demo
-![Demo](https://cloud.githubusercontent.com/assets/193864/12288427/61fe2114-ba0f-11e5-9832-98869180d87f.gif)
+The package tells you which interpreter it picked, and says so plainly if Jedi
+is missing from it.
+
+## Install
+
+```sh
+ppm install autocomplete-python
+```
 
 ## Features
 
-* Works with :apple: Mac OSX, :penguin: Linux and :checkered_flag: Windows.
-* Works with both :snake: Python 2 and 3.
-* Automatic lookup of virtual environments inside of your projects.
-* Configurable additional packages to include for completions.
-* Prints first N characters of statement value while completing variables.
-* Prints function arguments while completing functions.
-* Go-to-definition functionality, by default on `Alt+Cmd+G`/`Ctrl+Alt+G`. Thanks to [@patrys](https://github.com/patrys) for idea and implementation.
-* Method override functionality. Available as `override-method` command. Thanks to [@pchomik](https://github.com/pchomik) for idea and help.
-* If you have [Hyperclick](https://atom.io/packages/hyperclick) installed – you can click on anything to go-to-definition
-  ![sample](https://cloud.githubusercontent.com/assets/193864/10814177/17fb8bce-7e5f-11e5-8285-6b0100b3a0f8.gif)
+- **Completions** for modules, classes, functions, methods and variables, with
+  docstrings and signatures.
+- **Function argument completion**: type `(` and get a snippet of the
+  parameters, tab-navigable. Off by default; see `Autocomplete Function
+  Parameters`.
+- **Go to definition**: `Ctrl+Alt+G` (`Alt+Cmd+G` on macOS), or Ctrl/Cmd-click
+  with the [hyperclick](https://web.pulsar-edit.dev/packages/hyperclick) package
+  installed.
+- **Show usages** of the symbol under the cursor, across the project.
+- **Rename** a symbol across every file in the project.
+- **Override method**: pick an inherited method and get a correct
+  `super()`-calling stub.
+- **Tooltips** showing the docstring of the symbol under the cursor. Off by
+  default.
+- **Interpreter picker** in the status bar, listing every environment found.
 
-* Show usages of selected object
-  ![sample](https://cloud.githubusercontent.com/assets/193864/12263525/aff07ad4-b96a-11e5-949e-598e943b0190.gif)
+## Choosing an interpreter
 
-* Rename across multiple files. It will not touch files outside of your project, but it will change VCS ignored files. I'm not responsible for any broken projects without VCS because of this.
-  ![sample](https://cloud.githubusercontent.com/assets/193864/12288191/f448b55a-ba0c-11e5-81d7-31289ef5dbba.gif)
+Most of the time there is nothing to configure. The package looks for
+interpreters the way the VS Code Python extension does, in this order:
 
-## Configuration
+1. The interpreter you picked with **Autocomplete Python: Select Interpreter**
+2. `Python Executable Paths` from the settings
+3. `VIRTUAL_ENV` / `CONDA_PREFIX`: the environment Pulsar was launched from
+4. Virtual environments inside your project (`.venv`, `venv`, `env`, or any
+   directory with a `pyvenv.cfg`)
+5. Poetry, Pipenv, pyenv (honouring `.python-version`), Conda, virtualenvwrapper
+6. `PATH`
+7. Well-known system locations
 
-* If using a [virtualenv](https://virtualenv.pypa.io/en/latest/) with third-party packages, everything should "just work", but if it's not – use the `Python Executable Paths` and/or `Extra Paths For Packages` configuration options to specify the virtualenv's site-packages. Or launch Atom from the [activated virtualenv](https://virtualenv.pypa.io/en/latest/userguide.html#activate-script) to get completion for your third-party packages
-* Be sure to check package settings and adjust them. Please read them carefully before creating any new issues
-  * Set path to python executable if package cannot find it automatically
-  * Set extra path if package cannot autocomplete external python libraries
-  * Select one of autocomplete function parameters if you want function arguments to be completed
+Whichever it picked is shown in the status bar. Click it to choose another, or
+run **Autocomplete Python: Show Environment** to see the full list and the Jedi
+version in use.
 
-  ![image](https://cloud.githubusercontent.com/assets/193864/11631369/aafb34b4-9d3c-11e5-9a06-e8712a21474e.png)
+Full details in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
+## Commands
 
-## Common problems
+| Command | Default binding |
+| --- | --- |
+| `autocomplete-python:go-to-definition` | `Ctrl+Alt+G` / `Alt+Cmd+G` |
+| `autocomplete-python:show-usages` | none |
+| `autocomplete-python:rename` | none |
+| `autocomplete-python:override-method` | none |
+| `autocomplete-python:complete-arguments` | none |
+| `autocomplete-python:select-interpreter` | none |
+| `autocomplete-python:show-environment` | none |
+| `autocomplete-python:restart-daemon` | none |
 
-* "Error: spawn UNKNOWN" on Windows
-  * Solution: Find your python executable and uncheck the "Run this program as an administrator". See issue [#22](https://github.com/sadovnychyi/autocomplete-python/issues/22)
-* You have a separated folder for virtualenvs (e.g. by using `virtualenvwrapper`) and all your virtualenvs are stored in e.g. `~/.virtualenvs/`
-  * Create symlink to venv from your project root
-    * OR
-  * Add virtualenv folder as additional project root
-    * OR
-  * Use a virtualenv with the same name as the folder name of your project and use $PROJECT_NAME variable to set path to python executable.
-  You can use same variable to set extra paths as well. For example:
-  ```
-  /Users/name/.virtualenvs/$PROJECT_NAME/bin/python3.4
-  ```
-  * See issue [#143](https://github.com/sadovnychyi/autocomplete-python/issues/143)
-* No argument completion after I type left parenthesis character
-  * Likely this is because you have non standard keyboard layout.
-  Try to install the keyboard-localization package from: https://atom.io/packages/keyboard-localization
-  and use keymap generator to check what unicode character being generated after you type `(`.
-  Currently we trigger argument completion only on `U+0028`, `U+0038` and `U+0039`.
+## Something not working?
+
+Start with **Autocomplete Python: Show Environment**: it reports the
+interpreter and the Jedi version actually in use, which answers most
+reports. [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) covers the rest.
+
+## Contributing
+
+`CONTRIBUTING.md` has the setup, and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the pieces fit
+together.
+
+```sh
+npm install          # TypeScript toolchain
+npm run build        # src/*.ts -> dist/
+npm test             # typecheck + TypeScript tests + Python tests
+```
+
+## Credits
+
+Originally written by [Dmitry Sadovnychyi](https://github.com/sadovnychyi) and
+contributors. Completions come from [Jedi](https://github.com/davidhalter/jedi)
+by David Halter.
+
+## License
+
+GPL-3.0-or-later. See [LICENSE](LICENSE).

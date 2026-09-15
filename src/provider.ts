@@ -1,0 +1,726 @@
+import { CompositeDisposable } from 'atom';
+import type { Point, TextEditor } from 'atom';
+import * as path from 'path';
+
+import * as log from './log';
+import {
+  applySubstitutions,
+  compileTriggerRegex,
+  resolveSettings,
+  type PythonSettings,
+  type RawSettings
+} from './config';
+import { atomDiscoveryHost, atomNotifier } from './host/atom-host';
+import { InterpreterRegistry } from './interpreters/registry';
+import {
+  SOURCE_LABELS,
+  type DiscoveredInterpreter
+} from './interpreters/locators';
+import { JediDaemon } from './daemon/jedi-daemon';
+import type {
+  Definition,
+  DaemonRequest,
+  LookupKind,
+  MethodDefinition,
+  RequestConfig,
+  Suggestion,
+  Usage
+} from './daemon/protocol';
+import { parseSelectorList, scopesMatchSelectors } from './editor/scope-helpers';
+import {
+  filterSuggestions,
+  isArgumentCompletionSite,
+  truncateToIdentifierStart
+} from './editor/completion-rules';
+import { createDefinitionsView } from './views/definitions-view';
+import { createUsagesView } from './views/usages-view';
+import { createOverrideView, insertOverride } from './views/override-view';
+import { createInterpreterView } from './views/interpreter-view';
+import { RenameView } from './views/rename-view';
+import { TooltipManager } from './views/tooltips';
+import { SelectListPanel } from './views/select-list-panel';
+import { InterpreterStatusView, type StatusBar } from './views/status-bar-view';
+
+/** The scope selector autocomplete-plus uses to pick this provider. */
+const SELECTOR = '.source.python';
+
+/** Where completions are suppressed entirely. */
+const DISABLE_FOR_SELECTOR = '.source.python .comment, .source.python .string';
+const DISABLE_FOR_SELECTOR_PARSED = parseSelectorList(DISABLE_FOR_SELECTOR);
+
+/** The grammars this package is willing to drive. */
+const PYTHON_SCOPE_NAMES = ['source.python'];
+
+/** `dist/` is the build output; the daemon script sits beside it. */
+const DAEMON_SCRIPT = path.resolve(__dirname, '..', 'python', 'completion.py');
+
+const SETTINGS_URI = 'atom://config/packages/autocomplete-python';
+
+interface BufferPosition {
+  row: number;
+  column: number;
+}
+
+interface SnippetsManager {
+  insertSnippet(snippet: string, editor: TextEditor): void;
+}
+
+interface AutocompleteRequest {
+  editor: TextEditor;
+  bufferPosition: Point;
+  scopeDescriptor: { getScopesArray(): string[] };
+  prefix: string;
+}
+
+function isPythonEditor(editor: TextEditor): boolean {
+  return PYTHON_SCOPE_NAMES.includes(editor.getGrammar().scopeName);
+}
+
+/**
+ * The autocomplete-plus provider, the editor commands, and everything that
+ * turns editor state into a daemon request.
+ *
+ * Process handling lives in {@link JediDaemon}, interpreter discovery in
+ * `src/interpreters/`, and settings parsing in `src/config.ts`; this class wires
+ * them to the editor.
+ */
+export class PythonProvider {
+  // --- autocomplete-plus provider contract --------------------------------
+  readonly selector = SELECTOR;
+  readonly disableForSelector = DISABLE_FOR_SELECTOR;
+  readonly inclusionPriority = 2;
+  readonly excludeLowerPriority = false;
+  suggestionPriority = 3;
+
+  private readonly interpreters = new InterpreterRegistry(
+    atomDiscoveryHost,
+    () => {
+      const settings = this.settings();
+      return {
+        selected: settings.selectedInterpreter,
+        configured: settings.pythonPaths
+      };
+    }
+  );
+
+  private readonly daemon = new JediDaemon({
+    interpreters: this.interpreters,
+    notifier: atomNotifier,
+    scriptPath: DAEMON_SCRIPT,
+    idleTimeoutMinutes: () => this.settings().daemonIdleTimeout,
+    reportProviderErrors: () => this.settings().outputProviderErrors,
+    openSettings: () => void atom.workspace.open(SETTINGS_URI)
+  });
+
+  private readonly disposables = new CompositeDisposable();
+  private readonly editorDisposables = new Map<number, CompositeDisposable>();
+  private readonly tooltips = new TooltipManager(this);
+
+  private snippetsManager: SnippetsManager | null = null;
+  private triggerCompletionRegex = compileTriggerRegex('').regex;
+  private activated = false;
+
+  private definitionsView: SelectListPanel<Definition> | null = null;
+  private usagesView: SelectListPanel<Usage> | null = null;
+  private overrideView: SelectListPanel<MethodDefinition> | null = null;
+  private interpreterView: SelectListPanel<DiscoveredInterpreter> | null = null;
+  private renameView: RenameView | null = null;
+  private statusView: InterpreterStatusView | null = null;
+  private statusTooltip: { dispose(): void } | null = null;
+  private cachedLastSuggestions: Suggestion[] = [];
+
+  /** Exposed for the specs and for bug reports. */
+  get lastSuggestions(): readonly Suggestion[] {
+    return this.cachedLastSuggestions;
+  }
+
+  /** Current settings, defaulted and coerced. */
+  settings(): PythonSettings {
+    return resolveSettings(
+      (atom.config.get('autocomplete-python') ?? {}) as RawSettings
+    );
+  }
+
+  /**
+   * Wire up commands and editor observers. Safe to call repeatedly; only the
+   * first call does anything, which is what lets both the activation hook and
+   * the service getters call it.
+   */
+  activate(): this {
+    if (this.activated) return this;
+    this.activated = true;
+
+    this.updateTriggerCompletionRegex();
+    this.suggestionPriority = this.settings().suggestionPriority;
+    this.registerCommands();
+    this.observeConfig();
+
+    this.disposables.add(
+      atom.workspace.observeTextEditors((editor) => this.observeEditor(editor))
+    );
+    this.refreshStatusView();
+    return this;
+  }
+
+  dispose(): void {
+    this.disposables.dispose();
+    for (const editorDisposable of this.editorDisposables.values()) {
+      editorDisposable.dispose();
+    }
+    this.editorDisposables.clear();
+    this.tooltips.dispose();
+    this.daemon.dispose();
+    void this.definitionsView?.destroy();
+    void this.usagesView?.destroy();
+    void this.overrideView?.destroy();
+    void this.interpreterView?.destroy();
+    this.renameView?.destroy();
+    this.statusTooltip?.dispose();
+    this.statusTooltip = null;
+    this.statusView?.destroy();
+    this.statusView = null;
+    this.activated = false;
+  }
+
+  setSnippetsManager(snippetsManager: SnippetsManager): void {
+    this.snippetsManager = snippetsManager;
+  }
+
+  /** Called by `main` when the `status-bar` service becomes available. */
+  consumeStatusBar(statusBar: StatusBar): void {
+    this.statusView ??= new InterpreterStatusView(() => {
+      void this.selectInterpreter();
+    });
+    this.statusView.attach(statusBar);
+    this.refreshStatusView();
+  }
+
+  // --- setup --------------------------------------------------------------
+
+  private registerCommands(): void {
+    const editorSelector = 'atom-text-editor[data-grammar~=python]';
+    this.disposables.add(
+      atom.commands.add(editorSelector, {
+        'autocomplete-python:go-to-definition': () => void this.goToDefinition(),
+        'autocomplete-python:show-usages': () => void this.showUsages(),
+        'autocomplete-python:override-method': () => void this.overrideMethod(),
+        'autocomplete-python:rename': () => void this.rename(),
+        'autocomplete-python:complete-arguments': () => {
+          const editor = atom.workspace.getActiveTextEditor();
+          if (!editor) return;
+          void this.completeArguments(
+            editor,
+            editor.getCursorBufferPosition(),
+            true
+          );
+        }
+      }),
+      atom.commands.add('atom-workspace', {
+        'autocomplete-python:restart-daemon': () => this.restartDaemon(),
+        'autocomplete-python:select-interpreter': () =>
+          void this.selectInterpreter(),
+        'autocomplete-python:show-environment': () => this.showEnvironment()
+      })
+    );
+  }
+
+  private observeConfig(): void {
+    this.disposables.add(
+      atom.config.observe(
+        'autocomplete-python.suggestionPriority',
+        (value: unknown) => {
+          this.suggestionPriority = Number(value) || 3;
+        }
+      ),
+      atom.config.onDidChange('autocomplete-python.triggerCompletionRegex', () =>
+        this.updateTriggerCompletionRegex()
+      ),
+      // Anything that changes which interpreter or which packages Jedi sees
+      // invalidates both the interpreter lookup and every cached response.
+      atom.config.onDidChange('autocomplete-python.pythonPaths', () =>
+        this.reloadDaemon()
+      ),
+      atom.config.onDidChange('autocomplete-python.extraPaths', () =>
+        this.reloadDaemon()
+      ),
+      atom.config.onDidChange('autocomplete-python.selectedInterpreter', () =>
+        this.reloadDaemon()
+      ),
+      atom.project.onDidChangePaths(() => this.reloadDaemon())
+    );
+  }
+
+  private reloadDaemon(): void {
+    this.daemon.reload();
+    this.refreshStatusView();
+  }
+
+  /**
+   * Compile the user's trigger pattern, telling them once when it does not
+   * compile. Recompiled on change, so editing the setting no longer requires an
+   * editor restart.
+   */
+  private updateTriggerCompletionRegex(): void {
+    const { regex, error } = compileTriggerRegex(
+      this.settings().triggerCompletionRegex
+    );
+    this.triggerCompletionRegex = regex;
+    if (!error) return;
+
+    atomNotifier.warning(
+      'autocomplete-python: invalid completion trigger regex, using the default.',
+      { detail: error, dismissable: true }
+    );
+  }
+
+  private observeEditor(editor: TextEditor): void {
+    const attach = (): void => {
+      this.detachFromEditor(editor);
+      if (!isPythonEditor(editor)) return;
+
+      const disposables = new CompositeDisposable();
+
+      // Argument completion used to hang off a raw `keyup` listener matching
+      // the `^(` keystroke, which silently did nothing on any keyboard layout
+      // where `(` is not shift-9. Watching the buffer instead is
+      // layout-independent. Upstream issues #416, #455, #465.
+      disposables.add(
+        editor.getBuffer().onDidChangeText(({ changes }) => {
+          if (!changes.some((change) => change.newText.includes('('))) return;
+          void this.completeArguments(
+            editor,
+            editor.getCursorBufferPosition(),
+            false
+          );
+        })
+      );
+
+      if (this.settings().showTooltips) {
+        disposables.add(
+          editor.onDidChangeCursorPosition((event) => {
+            void this.tooltips.handleCursorChange(editor, event);
+          })
+        );
+      }
+
+      disposables.add(editor.onDidDestroy(() => this.detachFromEditor(editor)));
+
+      this.editorDisposables.set(editor.id, disposables);
+      log.debug('Attached to editor', editor.id);
+    };
+
+    attach();
+    this.disposables.add(editor.onDidChangeGrammar(() => attach()));
+  }
+
+  private detachFromEditor(editor: TextEditor): void {
+    const disposables = this.editorDisposables.get(editor.id);
+    if (!disposables) return;
+    disposables.dispose();
+    this.editorDisposables.delete(editor.id);
+  }
+
+  // --- requests -----------------------------------------------------------
+
+  private requestConfig(settings: PythonSettings): RequestConfig {
+    return {
+      extraPaths: applySubstitutions(
+        settings.extraPaths,
+        atom.project.getPaths()
+      ),
+      useSnippets: settings.useSnippets,
+      caseInsensitiveCompletion: settings.caseInsensitiveCompletion,
+      showDescriptions: settings.showDescriptions,
+      fuzzyMatcher: settings.fuzzyMatcher
+    };
+  }
+
+  private buildRequest(
+    lookup: LookupKind,
+    editor: TextEditor,
+    bufferPosition: BufferPosition,
+    options: { source?: string; prefix?: string } = {}
+  ): DaemonRequest {
+    const source = options.source ?? editor.getText();
+    const filePath = editor.getPath() ?? null;
+    return {
+      id: this.daemon.requestId(
+        lookup,
+        filePath,
+        source,
+        bufferPosition.row,
+        bufferPosition.column
+      ),
+      lookup,
+      path: filePath,
+      source,
+      line: bufferPosition.row,
+      column: bufferPosition.column,
+      ...(options.prefix === undefined ? {} : { prefix: options.prefix }),
+      config: this.requestConfig(this.settings())
+    };
+  }
+
+  // --- autocomplete-plus --------------------------------------------------
+
+  async getSuggestions(
+    request: AutocompleteRequest
+  ): Promise<readonly Suggestion[]> {
+    const { editor, prefix, scopeDescriptor } = request;
+
+    if (!this.triggerCompletionRegex.test(prefix)) {
+      return (this.cachedLastSuggestions = []);
+    }
+    if (
+      scopesMatchSelectors(
+        scopeDescriptor.getScopesArray(),
+        DISABLE_FOR_SELECTOR_PARSED
+      )
+    ) {
+      return (this.cachedLastSuggestions = []);
+    }
+
+    const useFuzzyMatcher = this.settings().fuzzyMatcher;
+    let { row, column } = request.bufferPosition;
+    let source = editor.getText();
+
+    if (useFuzzyMatcher) {
+      // Ask Jedi about the position just after the dot and filter locally, so
+      // one daemon round trip serves every keystroke of the same identifier.
+      const lines = editor.getBuffer().getLines();
+      const truncated = truncateToIdentifierStart(lines[row] ?? '', column);
+      if (truncated) {
+        column = truncated.column;
+        lines[row] = truncated.line;
+        source = lines.join('\n');
+      }
+    }
+
+    const daemonRequest = this.buildRequest(
+      'completions',
+      editor,
+      { row, column },
+      { source, prefix }
+    );
+
+    const cached = this.daemon.cachedResponse<Suggestion>(daemonRequest.id);
+    const results = cached
+      ? cached.results
+      : (await this.daemon.send<Suggestion>(daemonRequest)).results;
+
+    return (this.cachedLastSuggestions = useFuzzyMatcher
+      ? filterSuggestions(results, prefix)
+      : results);
+  }
+
+  // --- feature commands ---------------------------------------------------
+
+  async getDefinitions(
+    editor: TextEditor,
+    bufferPosition: BufferPosition
+  ): Promise<Definition[]> {
+    const response = await this.daemon.send<Definition>(
+      this.buildRequest('definitions', editor, bufferPosition)
+    );
+    return response.results;
+  }
+
+  async getTooltip(
+    editor: TextEditor,
+    bufferPosition: BufferPosition
+  ): Promise<Definition[]> {
+    const response = await this.daemon.send<Definition>(
+      this.buildRequest('tooltip', editor, bufferPosition)
+    );
+    return response.results;
+  }
+
+  async getUsages(
+    editor: TextEditor,
+    bufferPosition: BufferPosition
+  ): Promise<Usage[]> {
+    const response = await this.daemon.send<Usage>(
+      this.buildRequest('usages', editor, bufferPosition)
+    );
+    return response.results;
+  }
+
+  /**
+   * Ask Jedi what a subclass could override, by completing `self.` inside a
+   * throwaway method injected below the cursor.
+   */
+  async getMethods(
+    editor: TextEditor,
+    bufferPosition: BufferPosition
+  ): Promise<{
+    methods: MethodDefinition[];
+    indent: number;
+    bufferPosition: BufferPosition;
+  }> {
+    const lines = editor.getBuffer().getLines();
+    lines.splice(bufferPosition.row + 1, 0, '  def __autocomplete_python(s):');
+    lines.splice(bufferPosition.row + 2, 0, '    s.');
+
+    const response = await this.daemon.send<MethodDefinition>(
+      this.buildRequest(
+        'methods',
+        editor,
+        { row: bufferPosition.row + 2, column: 6 },
+        { source: lines.join('\n') }
+      )
+    );
+    return {
+      methods: response.results,
+      indent: bufferPosition.column,
+      bufferPosition
+    };
+  }
+
+  async goToDefinition(
+    editor?: TextEditor,
+    bufferPosition?: BufferPosition
+  ): Promise<void> {
+    const targetEditor = editor ?? atom.workspace.getActiveTextEditor();
+    if (!targetEditor) return;
+    const position = bufferPosition ?? targetEditor.getCursorBufferPosition();
+
+    void this.definitionsView?.destroy();
+    const view = (this.definitionsView = createDefinitionsView());
+    view.show();
+
+    const definitions = await this.getDefinitions(targetEditor, position);
+    const only = definitions.length === 1 ? definitions[0] : undefined;
+    if (only) {
+      view.confirmItem(only);
+      return;
+    }
+    await view.setItems(definitions);
+  }
+
+  async showUsages(): Promise<void> {
+    const editor = atom.workspace.getActiveTextEditor();
+    if (!editor) return;
+
+    void this.usagesView?.destroy();
+    const view = (this.usagesView = createUsagesView());
+    view.show();
+
+    await view.setItems(
+      await this.getUsages(editor, editor.getCursorBufferPosition())
+    );
+  }
+
+  async overrideMethod(): Promise<void> {
+    const editor = atom.workspace.getActiveTextEditor();
+    if (!editor) return;
+    const bufferPosition = editor.getCursorBufferPosition();
+
+    void this.overrideView?.destroy();
+    const view = (this.overrideView = createOverrideView(
+      (method: MethodDefinition) => {
+        insertOverride(
+          editor,
+          method,
+          bufferPosition.row,
+          bufferPosition.column
+        );
+      }
+    ));
+    view.show();
+
+    const { methods } = await this.getMethods(editor, bufferPosition);
+    await view.setItems(methods);
+  }
+
+  async rename(): Promise<void> {
+    const editor = atom.workspace.getActiveTextEditor();
+    if (!editor) return;
+
+    const usages = await this.getUsages(
+      editor,
+      editor.getCursorBufferPosition()
+    );
+
+    if (usages.length === 0) {
+      void this.usagesView?.destroy();
+      const view = (this.usagesView = createUsagesView());
+      view.show();
+      await view.setItems(usages);
+      return;
+    }
+
+    this.renameView?.destroy();
+    this.renameView = new RenameView(usages);
+    this.renameView.onInput((newName: string) => {
+      void this.applyRename(usages, newName);
+    });
+  }
+
+  /**
+   * Rewrite every in-project usage. Edits within a file are applied from the
+   * end of the buffer backwards, so earlier positions stay valid no matter how
+   * the name's length changes - the old code tracked a per-line column offset
+   * by hand and got it wrong whenever two usages shared a line out of order.
+   */
+  private async applyRename(
+    usages: readonly Usage[],
+    newName: string
+  ): Promise<void> {
+    const byFile = new Map<string, Usage[]>();
+    for (const usage of usages) {
+      const [projectPath] = atom.project.relativizePath(usage.fileName);
+      if (!projectPath) {
+        log.debug('Ignoring a usage outside the project', usage.fileName);
+        continue;
+      }
+      const forFile = byFile.get(usage.fileName) ?? [];
+      forFile.push(usage);
+      byFile.set(usage.fileName, forFile);
+    }
+
+    for (const [fileName, fileUsages] of byFile) {
+      const editor = (await atom.workspace.open(fileName, {
+        activateItem: false
+      })) as TextEditor;
+      const buffer = editor.getBuffer();
+
+      const ordered = [...fileUsages].sort(
+        (a, b) => b.line - a.line || b.column - a.column
+      );
+      for (const usage of ordered) {
+        buffer.setTextInRange(
+          [
+            [usage.line - 1, usage.column],
+            [usage.line - 1, usage.column + usage.name.length]
+          ],
+          newName
+        );
+      }
+      await buffer.save();
+    }
+  }
+
+  /**
+   * Insert a snippet for the arguments of the call the cursor sits inside.
+   *
+   * `force` comes from the explicit `complete-arguments` command and bypasses
+   * the `useSnippets` setting.
+   */
+  async completeArguments(
+    editor: TextEditor,
+    bufferPosition: BufferPosition,
+    force: boolean
+  ): Promise<void> {
+    if (!force && this.settings().useSnippets === 'none') return;
+    if (!this.snippetsManager) {
+      log.debug('No snippets service available; skipping argument completion');
+      return;
+    }
+
+    const scopes = editor
+      .scopeDescriptorForBufferPosition(bufferPosition)
+      .getScopesArray();
+    if (scopesMatchSelectors(scopes, DISABLE_FOR_SELECTOR_PARSED)) {
+      log.debug('Not completing arguments inside', scopes);
+      return;
+    }
+    if (!isArgumentCompletionSite(
+      editor.lineTextForBufferRow(bufferPosition.row) ?? '',
+      bufferPosition.column
+    )) {
+      return;
+    }
+
+    const response = await this.daemon.send(
+      this.buildRequest('arguments', editor, bufferPosition)
+    );
+    if (!response.arguments) return;
+
+    // The cursor may have moved while Jedi was thinking; re-check before
+    // writing into the buffer.
+    const current = editor.getCursorBufferPosition();
+    if (
+      current.row !== bufferPosition.row ||
+      current.column !== bufferPosition.column
+    ) {
+      log.debug('Discarding a stale argument completion');
+      return;
+    }
+    this.snippetsManager.insertSnippet(response.arguments, editor);
+  }
+
+  // --- diagnostics --------------------------------------------------------
+
+  restartDaemon(): void {
+    this.reloadDaemon();
+    atomNotifier.success(
+      'autocomplete-python: completion daemon restarted.'
+    );
+  }
+
+  /**
+   * Let the user pick an interpreter explicitly. The choice is stored in
+   * `selectedInterpreter` and takes priority over every locator, which is what
+   * makes a project with several candidate environments predictable.
+   */
+  async selectInterpreter(): Promise<void> {
+    void this.interpreterView?.destroy();
+    const view = (this.interpreterView = createInterpreterView(
+      (interpreter: DiscoveredInterpreter) => {
+        atom.config.set(
+          'autocomplete-python.selectedInterpreter',
+          interpreter.filePath
+        );
+        this.reloadDaemon();
+        atomNotifier.success(
+          `autocomplete-python is now using ${interpreter.filePath}`
+        );
+      }
+    ));
+    view.show();
+
+    this.interpreters.invalidate();
+    await view.setItems(this.interpreters.all());
+  }
+
+  private refreshStatusView(): void {
+    if (!this.statusView) return;
+
+    const interpreter = this.interpreters.best();
+    this.statusView.setText(
+      interpreter ? this.interpreters.describe(interpreter) : 'no interpreter'
+    );
+
+    this.statusTooltip?.dispose();
+    this.statusTooltip = this.statusView.setTooltip(
+      interpreter
+        ? `autocomplete-python: ${interpreter.filePath} (${SOURCE_LABELS[interpreter.source]}). Click to change.`
+        : 'autocomplete-python found no Python interpreter. Click to choose one.'
+    );
+  }
+
+  /** Report the interpreter and Jedi version actually in use. */
+  showEnvironment(): void {
+    const chosen = this.interpreters.best();
+    const all = this.interpreters.all();
+
+    atomNotifier.info('autocomplete-python environment', {
+      description: chosen
+        ? `Using \`${chosen.filePath}\` (${SOURCE_LABELS[chosen.source]}).`
+        : 'No Python interpreter found.',
+      detail: [
+        `Jedi: ${this.daemon.runtime?.jedi ?? 'not reported yet'}`,
+        `Python: ${this.daemon.runtime?.python ?? 'not reported yet'}`,
+        '',
+        'Candidates, in priority order:',
+        ...all.map(
+          (entry, index) =>
+            `  ${index + 1}. [${SOURCE_LABELS[entry.source]}] ${entry.filePath}`
+        )
+      ].join('\n'),
+      dismissable: true
+    });
+  }
+}
+
+export default new PythonProvider();

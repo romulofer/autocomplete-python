@@ -1,24 +1,56 @@
 {
   "name": "autocomplete-python",
-  "main": "./lib/main",
-  "version": "1.17.1",
-  "description": "Python completions for packages, variables, methods, functions, with their arguments. Powered by your choice of Jedi or Kite.",
-  "repository": "git@github.com:autocomplete-python/autocomplete-python.git",
-  "license": "GPL",
+  "main": "./dist/main.js",
+  "version": "2.0.0",
+  "description": "Jedi-powered Python completions, go-to-definition, find usages, method override and rename for Pulsar.",
+  "keywords": [
+    "python",
+    "autocomplete",
+    "jedi",
+    "pulsar",
+    "ide"
+  ],
+  "author": "R\u00f4mulo Fernandes Evangelista (https://github.com/romulofer)",
+  "contributors": [
+    {
+      "name": "Dmitry Sadovnychyi",
+      "email": "autocomplete-python@dmit.ro"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/romulofer/autocomplete-python.git"
+  },
+  "homepage": "https://github.com/romulofer/autocomplete-python#readme",
+  "bugs": {
+    "url": "https://github.com/romulofer/autocomplete-python/issues"
+  },
+  "license": "GPL-3.0-or-later",
   "engines": {
-    "atom": ">=0.194.0 <2.0.0"
+    "atom": ">=1.100.0 <2.0.0",
+    "pulsar": ">=1.100.0"
+  },
+  "activationHooks": [
+    "source.python:root-scope-used"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:ts": "bun test",
+    "test:py": "python3 -m pytest",
+    "test": "npm run typecheck && npm run test:ts && npm run test:py",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "atom-slick": "^2.0.0",
-    "atom-space-pen-views": "~2.1.0",
-    "fuzzaldrin-plus": "^0.3.1",
-    "kite-installer": "=3.15.0",
-    "selector-kit": "^0.1",
-    "space-pen": "^5.1.2",
-    "underscore": "^1.12.1",
-    "mixpanel": "^0.5.0"
+    "atom-select-list": "^0.8.1",
+    "fuzzaldrin-plus": "^0.6.0"
   },
-  "package-dependencies": {},
+  "devDependencies": {
+    "@types/atom": "^1.40.18",
+    "@types/node": "^24.13.4",
+    "typescript": "^7.0.2"
+  },
   "providedServices": {
     "autocomplete.provider": {
       "versions": {
@@ -42,23 +74,5 @@
         "^1.0.0": "consumeStatusBar"
       }
     }
-  },
-  "contributors": [
-    {
-      "name": "Dmitry Sadovnychyi",
-      "email": "autocomplete-python@dmit.ro"
-    },
-    {
-      "name": "Daniel Hung",
-      "email": "daniel@kite.com"
-    }
-  ],
-  "bugs": {
-    "url": "https://github.com/autocomplete-python/autocomplete-python/issues"
-  },
-  "keywords": [
-    "python",
-    "autocomplete",
-    "jedi"
-  ]
+  }
 }
