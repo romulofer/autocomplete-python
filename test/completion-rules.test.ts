@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { filterSuggestions, isArgumentCompletionSite } from '../src/editor/completion-rules';
+import {
+  filterSuggestions,
+  isArgumentCompletionSite,
+  truncateToIdentifierStart
+} from '../src/editor/completion-rules';
 import type { Suggestion } from '../src/daemon/protocol';
 
 const suggestion = (text: string): Suggestion => ({ text, type: 'function' });
@@ -57,5 +61,35 @@ describe('isArgumentCompletionSite', () => {
   it('allows a trailing close paren followed by more code', () => {
     expect(isArgumentCompletionSite('print(foo(', 10)).toBe(true);
     expect(isArgumentCompletionSite('x = foo() ', 9)).toBe(false);
+  });
+});
+
+describe('truncateToIdentifierStart', () => {
+  it('rewinds to just after the last dot so one lookup serves the identifier', () => {
+    // `os.getc` -> ask Jedi about `os.` once; the local matcher filters `getc`.
+    expect(truncateToIdentifierStart('os.getc', 7)).toEqual({
+      column: 3,
+      line: 'os.'
+    });
+  });
+
+  it('truncates at the cursor, ignoring text to its right', () => {
+    expect(truncateToIdentifierStart('os.getcwd', 6)).toEqual({
+      column: 3,
+      line: 'os.'
+    });
+  });
+
+  it('rewinds only to the final dot of a chain', () => {
+    expect(truncateToIdentifierStart('a.b.c', 5)).toEqual({
+      column: 4,
+      line: 'a.b.'
+    });
+  });
+
+  it('returns null when no identifier precedes the cursor', () => {
+    expect(truncateToIdentifierStart('foo(', 4)).toBeNull();
+    expect(truncateToIdentifierStart('', 0)).toBeNull();
+    expect(truncateToIdentifierStart('  ', 2)).toBeNull();
   });
 });

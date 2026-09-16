@@ -13,6 +13,20 @@ def signature(*descriptions: str) -> FakeSignature:
     return FakeSignature(params=[FakeParam(d) for d in descriptions])
 
 
+class DocstringRaises(FakeName):
+    """A name whose ``docstring()`` blows up, as a C extension's can."""
+
+    def docstring(self) -> str:
+        raise RuntimeError("docstring exploded")
+
+
+class ParentRaises(FakeName):
+    """A name whose ``parent()`` blows up while resolving the class."""
+
+    def parent(self) -> FakeName | None:
+        raise RuntimeError("parent exploded")
+
+
 # --- call_signature_params ------------------------------------------------
 
 
@@ -35,6 +49,14 @@ def test_call_signature_params_skips_self_and_star_args():
 
 def test_call_signature_params_is_empty_when_jedi_raises():
     assert serializers.call_signature_params(ExplodingScript(), 1, 0) == []
+
+
+def test_call_signature_params_skips_a_star_arg_jedi_still_names():
+    # Jedi names a ``*args`` parameter ``args``, so it passes the word test in
+    # is_completable_param; the star only shows up in the description. It still
+    # cannot be filled in by name, so the display-level guard must drop it.
+    script = FakeScript(signatures=[FakeSignature(params=[FakeParam("param *args", name="args")])])
+    assert serializers.call_signature_params(script, 1, 0) == []
 
 
 # --- completions ----------------------------------------------------------
@@ -137,6 +159,14 @@ def test_completions_shows_a_statement_value_as_the_right_label():
 
 def test_completions_is_empty_when_jedi_raises():
     assert serializers.completions(ExplodingScript(), 1, 0) == []
+
+
+def test_describe_returns_empty_when_the_docstring_raises():
+    # A completion source can raise from docstring(); the description column must
+    # still resolve rather than take the request down.
+    script = FakeScript(completions=[DocstringRaises(name="run")])
+    results = serializers.completions(script, 1, 0, show_doc_strings=True)
+    assert results[0]["description"] == ""
 
 
 # --- arguments ------------------------------------------------------------
@@ -271,6 +301,29 @@ def test_methods_is_empty_when_jedi_raises():
     assert serializers.methods(ExplodingScript(), 1, 0) == []
 
 
+def test_methods_falls_back_when_the_probe_parent_raises():
+    # Resolving the probe's parent can raise; the instance name then stays at the
+    # generic fallback rather than aborting the whole override lookup.
+    script = FakeScript(
+        completions=[
+            ParentRaises(name=serializers.OVERRIDE_PROBE_NAME),
+            FakeName(name="run", parent_name=klass("Base")),
+        ]
+    )
+    assert serializers.methods(script, 1, 0)[0]["instance"] == "self.__class__"
+
+
+def test_methods_skips_a_completion_whose_parent_raises():
+    script = FakeScript(
+        completions=[
+            ParentRaises(name="broken"),
+            FakeName(name="run", parent_name=klass("Base")),
+        ]
+    )
+    names_found = [entry["name"] for entry in serializers.methods(script, 1, 0)]
+    assert names_found == ["run"]
+
+
 # --- definitions, tooltip, usages -----------------------------------------
 
 
@@ -328,6 +381,33 @@ def test_tooltip_falls_back_to_the_statement_value():
 
 def test_tooltip_is_empty_when_nothing_has_a_file():
     assert serializers.tooltip([FakeName(module_path=None)]) == []
+
+
+def test_tooltip_follows_an_import_to_its_target():
+    target = FakeName(
+        name="real",
+        type="function",
+        module_path=pathlib.Path("/work/real.py"),
+        _docstring="The real thing.",
+    )
+    alias = FakeName(
+        name="alias",
+        type="import",
+        module_path=pathlib.Path("/work/a.py"),
+        goto_targets=[target],
+    )
+    found = serializers.tooltip([alias])
+    assert found[0]["fileName"] == "/work/real.py"
+    assert found[0]["description"] == "The real thing."
+
+
+def test_tooltip_falls_back_when_the_docstring_raises():
+    definition = DocstringRaises(
+        name="run", module_path=pathlib.Path("/work/a.py")
+    )
+    # No docstring and not a statement, so the description resolves to empty
+    # rather than propagating the error.
+    assert serializers.tooltip([definition])[0]["description"] == ""
 
 
 def test_usages_keeps_one_based_lines():

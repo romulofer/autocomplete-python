@@ -5,8 +5,10 @@ from __future__ import annotations
 import io
 import json
 
-from acp_jedi import protocol
-from acp_jedi.daemon import Daemon
+import pytest
+
+from acp_jedi import protocol, runtime
+from acp_jedi.daemon import Daemon, main
 from acp_jedi.session import JediSession
 
 from conftest import FakeScript
@@ -105,4 +107,45 @@ def test_stray_prints_never_reach_the_response_stream(capfd):
 
 def test_run_returns_zero_when_stdin_closes(capfd):
     assert make_daemon().run(io.StringIO("")) == 0
+    capfd.readouterr()
+
+
+# --- main() ---------------------------------------------------------------
+
+
+def test_main_answers_one_shot_requests_and_exits(capfd, monkeypatch):
+    # With arguments, the entry point answers each JSON request and returns,
+    # rather than serving stdin; the handshake belongs to the serving loop only.
+    monkeypatch.setattr(runtime, "bootstrap", lambda: FakeJedi())
+
+    exit_code = main([request(id="one"), request(id="two")])
+
+    out = capfd.readouterr().out
+    payloads = [json.loads(line) for line in out.splitlines() if line.strip()]
+    assert exit_code == 0
+    assert [payload["id"] for payload in payloads] == ["one", "two"]
+
+
+def test_main_serves_stdin_when_given_no_arguments(capfd, monkeypatch):
+    monkeypatch.setattr(runtime, "bootstrap", lambda: FakeJedi())
+    monkeypatch.setattr("sys.stdin", io.StringIO(request(id="served") + "\n"))
+
+    exit_code = main([])
+
+    out = capfd.readouterr().out
+    payloads = [json.loads(line) for line in out.splitlines() if line.strip()]
+    assert exit_code == 0
+    assert payloads[0]["id"] == protocol.HANDSHAKE_ID
+    assert payloads[1]["id"] == "served"
+
+
+def test_main_aborts_when_bootstrap_fails(capfd, monkeypatch):
+    def explode():
+        raise runtime.FatalStartupError("jedi-missing", "no jedi here", "install it")
+
+    monkeypatch.setattr(runtime, "bootstrap", explode)
+
+    with pytest.raises(SystemExit) as caught:
+        main([])
+    assert caught.value.code == 1
     capfd.readouterr()
