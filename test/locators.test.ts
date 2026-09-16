@@ -10,6 +10,8 @@ import {
   poetryInterpreters,
   pyenvInterpreters,
   selectedInterpreter,
+  shebangInterpreterPath,
+  shebangInterpreters,
   shellEnvironmentInterpreters,
   SOURCE_LABELS,
   virtualenvwrapperInterpreters,
@@ -219,6 +221,83 @@ describe('workspaceInterpreters', () => {
   });
 });
 
+describe('shebangInterpreterPath', () => {
+  const host = fakeHost({ executables: ['/opt/py/bin/python3', '/usr/bin/python'] });
+
+  it('reads an absolute interpreter path off the first line', () => {
+    expect(shebangInterpreterPath(host, '#!/opt/py/bin/python3\nprint(1)')).toBe(
+      '/opt/py/bin/python3'
+    );
+  });
+
+  it('tolerates a space after the bang and a CRLF line ending', () => {
+    expect(shebangInterpreterPath(host, '#! /usr/bin/python\r\n')).toBe(
+      '/usr/bin/python'
+    );
+  });
+
+  it('ignores a /usr/bin/env shebang, which defers to PATH', () => {
+    expect(shebangInterpreterPath(host, '#!/usr/bin/env python3\n')).toBeNull();
+  });
+
+  it('ignores a relative path and a non-python interpreter', () => {
+    expect(shebangInterpreterPath(host, '#!./venv/bin/python\n')).toBeNull();
+    expect(shebangInterpreterPath(host, '#!/bin/sh\n')).toBeNull();
+  });
+
+  it('ignores a shebang that names a missing interpreter', () => {
+    expect(shebangInterpreterPath(host, '#!/deleted/python3\n')).toBeNull();
+  });
+
+  it('returns null when there is no shebang', () => {
+    expect(shebangInterpreterPath(host, 'print(1)\n')).toBeNull();
+    expect(shebangInterpreterPath(host, null)).toBeNull();
+  });
+});
+
+describe('shebangInterpreters', () => {
+  it('finds the interpreter a top-level script points at', () => {
+    const host = fakeHost(
+      {
+        executables: ['/opt/py/bin/python3'],
+        files: { '/work/app/main.py': '#!/opt/py/bin/python3\nprint(1)' }
+      },
+      {},
+      ['/work/app']
+    );
+    const found = shebangInterpreters(host);
+    expect(paths(found)).toEqual(['/opt/py/bin/python3']);
+    expect(found[0]?.source).toBe('shebang');
+  });
+
+  it('does not read scripts below the project root', () => {
+    const host = fakeHost(
+      {
+        executables: ['/opt/py/bin/python3'],
+        files: { '/work/app/scripts/run.py': '#!/opt/py/bin/python3\n' }
+      },
+      {},
+      ['/work/app']
+    );
+    expect(shebangInterpreters(host)).toEqual([]);
+  });
+
+  it('deduplicates when two scripts name the same interpreter', () => {
+    const host = fakeHost(
+      {
+        executables: ['/opt/py/bin/python3'],
+        files: {
+          '/work/app/a.py': '#!/opt/py/bin/python3\n',
+          '/work/app/b.py': '#!/opt/py/bin/python3\n'
+        }
+      },
+      {},
+      ['/work/app']
+    );
+    expect(shebangInterpreters(host)).toHaveLength(1);
+  });
+});
+
 describe('poetryInterpreters', () => {
   const tree = {
     executables: [
@@ -372,6 +451,23 @@ describe('discoverInterpreters', () => {
     ]);
   });
 
+  it('ranks a shebang interpreter below the workspace venv and above PATH', () => {
+    const host = fakeHost(
+      {
+        executables: ['/work/app/.venv/bin/python3', '/opt/py/bin/python3', '/usr/bin/python3'],
+        files: { '/work/app/main.py': '#!/opt/py/bin/python3\n' }
+      },
+      { pathEntries: ['/usr/bin'] },
+      ['/work/app']
+    );
+    const found = discoverInterpreters(host);
+    expect(found.map((entry) => entry.source)).toEqual([
+      'workspace',
+      'shebang',
+      'path'
+    ]);
+  });
+
   it('keeps the highest-priority source when one path is found twice', () => {
     const host = fakeHost(
       { executables: ['/usr/bin/python3'] },
@@ -403,6 +499,7 @@ describe('SOURCE_LABELS', () => {
       'setting',
       'shell',
       'workspace',
+      'shebang',
       'poetry',
       'pipenv',
       'pyenv',

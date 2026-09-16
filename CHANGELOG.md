@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.4.1
+
+### Added
+
+- **Interpreter discovery reads a script's shebang.** A `.py` file at a project
+  root whose `#!` line names an absolute path to a Python executable is now
+  offered as an interpreter, ranked below a workspace virtual environment and
+  above the tool-managed caches (Poetry, Pipenv, pyenv, Conda). A
+  `#!/usr/bin/env python` shebang defers to `PATH` and is ignored, as is a
+  relative path or one naming a missing interpreter. Upstream issue #270.
+
+### Notes
+
+- Confirmed and now covered by end-to-end tests: argument completion for class
+  construction from `__init__` (including an inherited or dataclass `__init__`),
+  go-to-definition on async methods, and argument completion for
+  `@staticmethod`, `@classmethod` and `functools.wraps`-decorated methods.
+  Upstream issues #406, #230, #340. Upstream #233 (huge memory) does not
+  reproduce on Jedi 0.19/0.20: resident memory plateaus in the tens of MB across
+  thousands of requests.
+
 ## 2.2.0
 
 ### Added

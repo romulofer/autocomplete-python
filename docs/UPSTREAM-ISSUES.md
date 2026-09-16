@@ -39,6 +39,7 @@ Jedi 0.18 removed `Name.params` and renamed `goto_assignments`. 1.17 probed for
 | #451 | Shows lots of parameters, but not the actual function parameters | Parameters now read from `get_signatures()` |
 | #445 | Autofilling of function parameters not working | As above |
 | #460, #458, #453, #367, #347, #389 | Raw tracebacks from `completion.py` | Startup failures are reported as actionable notifications; a failing request no longer kills the daemon |
+| #230 | Go-to-definition on async methods | Jedi 0.19 resolves a coroutine like any other method; covered by an end-to-end test |
 
 ## Addressed: crashes and corrupted output
 
@@ -70,6 +71,7 @@ The largest cluster. Discovery is now ordered, explicit and inspectable.
 | #232 | Use an already-installed jedi if possible | Always has: Jedi is never bundled |
 | #204 | Support short executable names in PATH | Every `PATH` entry is scanned |
 | #143, #352 | virtualenvs stored outside the project | virtualenvwrapper, Poetry and Pipenv locations are searched |
+| #270 | Use the shebang to pick the interpreter | A `#!` line naming an absolute python path at a project root is a locator, ranked below the workspace venv and above the tool-managed caches |
 
 ## Addressed: input handling
 
@@ -78,6 +80,7 @@ The largest cluster. Discovery is now ordered, explicit and inspectable.
 | #416 | How to bind `complete-arguments` | It is a normal command, in the menu and the palette |
 | #455 | Cannot change the completion key | Argument completion watches the buffer, not a hard-coded keystroke |
 | #467 | Cannot work out how to set manual autocomplete | Documented in `docs/CONFIGURATION.md` |
+| #406 | Argument completion for class construction from `__init__` | `get_signatures()` on a class call returns its constructor, including an inherited or dataclass `__init__`; the snippet fills those parameters with `self` dropped |
 | #328 | `TextEditor.get` is deprecated | No deprecated APIs remain |
 | #331 | Should only activate when Python is used | Activation hook is `source.python:root-scope-used` |
 
@@ -86,9 +89,10 @@ The largest cluster. Discovery is now ordered, explicit and inspectable.
 | Issue | Title | Notes |
 | --- | --- | --- |
 | #418, #320 | Completions are slow | First request pays for daemon startup; the fuzzy matcher now serves a whole identifier from one lookup. Jedi's own speed is unchanged. |
-| #233 | Huge memory usage | The daemon exits after an idle period (configurable, 10 min default) instead of holding Jedi's caches all session. |
+| #233 | Huge memory usage | Does not reproduce on Jedi 0.19/0.20: resident memory plateaus in the tens of MB across thousands of requests, because each request builds a fresh `Script` and Jedi evicts its own time-based caches. The daemon also exits after an idle period (configurable, 10 min default). The Atom-era report was against an older Jedi that held whole-session caches. |
 | #344 | Docstrings are unscrollable | The tooltip overlay scrolls. The autocomplete-plus description pane belongs to that package. |
 | #400 | The function-type UI is too small | Stylesheet cleaned up; layout is mostly autocomplete-plus's. |
+| #340 | Complete Arguments on decorated methods | `@staticmethod`, `@classmethod` and `functools.wraps` decorators resolve, so `self`/`cls` drop out correctly. A hand-rolled decorator that omits `functools.wraps` still hides the signature, which Python itself cannot see through. |
 
 ## Not addressed
 
@@ -98,12 +102,8 @@ Upstream behaviour kept as-is, or out of scope for a modernization.
 | --- | --- | --- |
 | #384 | Type hint support | Comes from Jedi; improves by upgrading Jedi |
 | #404, #371, #372, #402, #419, #444, #399, #375 | Specific completion results | Jedi behaviour, not ours. Report to Jedi. |
-| #230 | Go-to-definition on async methods | Jedi behaviour |
-| #340 | Complete Arguments on decorated methods | Jedi cannot always resolve a decorated signature |
-| #295 | WSL environments | Needs a path-translation layer; no design yet |
+| #295 | WSL environments | A WSL interpreter is a Linux ELF at `\\wsl$\<distro>\...`; Windows cannot spawn it directly, so a discovered path would only fail to launch. Real support means running the daemon inside WSL via `wsl.exe` and translating every path in a request and response between `C:\`, `/mnt/c/`, and `\\wsl$`, which touches the spawn adapter, the run command and the daemon protocol. Large, Windows-and-WSL only, and untestable from a Linux CI. Deferred deliberately. Running Pulsar itself inside WSLg needs nothing special. |
 | #226 | Remote servers over SSH | Out of scope; a language-server setup fits better |
-| #270 | Use the shebang to pick the interpreter | Reasonable, not implemented. Would slot in as another locator. |
-| #406 | Argument completion for class construction from `__init__` | Reasonable, not implemented |
 | #430 | Inject custom Python docs | Out of scope |
 | #349 | Improve the debugger package's UI | Different package |
 | #391, #364 | Fuzzy match does not replace typed text | Marked `invalid`/`wontfix` upstream; autocomplete-plus owns insertion |

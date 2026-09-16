@@ -37,13 +37,14 @@ found twice keeps its highest-priority label.
 | 2 | Settings | `pythonPaths` |
 | 3 | Shell | `VIRTUAL_ENV`, `CONDA_PREFIX` |
 | 4 | Workspace | `.venv`, `venv`, `.env`, `env`, `virtualenv`, or any project directory containing `pyvenv.cfg` |
-| 5 | Poetry | `POETRY_VIRTUALENVS_PATH`, else the platform cache directory. Environments whose name starts with an open project's name are promoted. |
-| 6 | Pipenv | `WORKON_HOME`, else `~/.local/share/virtualenvs` |
-| 7 | pyenv | `$PYENV_ROOT/versions/*` and `*/envs/*`. A version pinned by a project's `.python-version` is promoted. |
-| 8 | Conda | `CONDA_ROOT`, `~/anaconda3`, `~/miniconda3`, `~/miniforge3`, `~/mambaforge`, `/opt/conda`, plus each `envs/` and `~/.conda/envs` |
-| 9 | virtualenvwrapper | `WORKON_HOME`, else `~/.virtualenvs` |
-| 10 | PATH | Every `PATH` entry |
-| 11 | System | `/usr/local/bin`, `/usr/bin`, `/bin`, `/opt/homebrew/bin`, `~/.local/bin`; on Windows, `C:\PythonXY` and the per-user `Programs\Python` |
+| 5 | Shebang | The `#!` line of a `.py` file at a project root, when it names an absolute path to a python executable. `#!/usr/bin/env python` defers to PATH and is skipped. |
+| 6 | Poetry | `POETRY_VIRTUALENVS_PATH`, else the platform cache directory. Environments whose name starts with an open project's name are promoted. |
+| 7 | Pipenv | `WORKON_HOME`, else `~/.local/share/virtualenvs` |
+| 8 | pyenv | `$PYENV_ROOT/versions/*` and `*/envs/*`. A version pinned by a project's `.python-version` is promoted. |
+| 9 | Conda | `CONDA_ROOT`, `~/anaconda3`, `~/miniconda3`, `~/miniforge3`, `~/mambaforge`, `/opt/conda`, plus each `envs/` and `~/.conda/envs` |
+| 10 | virtualenvwrapper | `WORKON_HOME`, else `~/.virtualenvs` |
+| 11 | PATH | Every `PATH` entry |
+| 12 | System | `/usr/local/bin`, `/usr/bin`, `/bin`, `/opt/homebrew/bin`, `~/.local/bin`; on Windows, `C:\PythonXY` and the per-user `Programs\Python` |
 
 Within one directory, `python3` is preferred over `python3.12`, which is
 preferred over bare `python`.

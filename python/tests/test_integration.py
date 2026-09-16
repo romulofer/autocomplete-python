@@ -188,6 +188,117 @@ def test_completes_all_arguments_including_defaults(jedi, fixtures):
     assert 'punctuation=${2:"!"}' in snippet
 
 
+# Upstream issue #406: completing the arguments of a class construction should
+# fill the parameters of `__init__`, with `self` dropped, the same as a plain
+# function call.
+def test_completes_class_constructor_arguments_from_init(jedi):
+    source = (
+        "class Greeter:\n"
+        "    def __init__(self, name, punctuation='!'):\n"
+        "        pass\n"
+        "Greeter("
+    )
+    request = build("a", source, 3, 8, lookup="arguments")
+    request["config"]["useSnippets"] = "all"
+    snippet = ask([request])["a"]["arguments"]
+
+    assert "self" not in snippet
+    assert "${1:name}" in snippet
+    assert "punctuation=${2:'!'}" in snippet
+
+
+def test_completes_constructor_arguments_from_an_inherited_init(jedi):
+    source = (
+        "class Base2:\n"
+        "    def __init__(self, name, punctuation='!'):\n"
+        "        pass\n"
+        "class Child2(Base2):\n"
+        "    pass\n"
+        "Child2("
+    )
+    request = build("a", source, 5, 7, lookup="arguments")
+    request["config"]["useSnippets"] = "required"
+    snippet = ask([request])["a"]["arguments"]
+
+    assert snippet == "${1:name}$0"
+
+
+def test_offers_constructor_parameters_as_keyword_completions(jedi):
+    source = (
+        "class Greeter:\n"
+        "    def __init__(self, name, punctuation='!'):\n"
+        "        pass\n"
+        "Greeter("
+    )
+    results = ask([build("c", source, 3, 8, prefix="")])["c"]["results"]
+    keywords = {
+        entry["text"].split("=")[0]
+        for entry in results
+        if entry.get("type") == "property"
+    }
+    assert {"name", "punctuation"} <= keywords
+
+
+# Upstream issue #230: go-to-definition on an async method used to come back
+# empty. Jedi resolves the coroutine like any other method.
+def test_goes_to_the_definition_of_an_async_method(jedi, fixtures):
+    source = (
+        "class Fetcher:\n"
+        "    async def fetch(self, url):\n"
+        "        return url\n"
+        "Fetcher().fetch"
+    )
+    responses = ask(
+        [
+            build(
+                "d",
+                source,
+                3,
+                12,
+                lookup="definitions",
+                path=os.path.join(fixtures, "consumer.py"),
+            )
+        ]
+    )
+    results = responses["d"]["results"]
+    assert len(results) == 1
+    assert results[0]["text"] == "fetch"
+    # The `async def` is the second line, zero-based row 1.
+    assert results[0]["line"] == 1
+
+
+# Upstream issue #340: completing the arguments of a decorated method. Jedi
+# resolves the common decorators, so `self`/`cls` drop out as they would for a
+# plain method. A hand-rolled decorator that does not use functools.wraps still
+# hides the signature, which is a limitation of Python's decoration, not ours.
+def test_completes_arguments_of_a_staticmethod(jedi):
+    source = (
+        "class A:\n"
+        "    @staticmethod\n"
+        "    def make(alpha, beta=2):\n"
+        "        pass\n"
+        "A.make("
+    )
+    request = build("a", source, 4, 7, lookup="arguments")
+    request["config"]["useSnippets"] = "required"
+    assert ask([request])["a"]["arguments"] == "${1:alpha}$0"
+
+
+def test_completes_arguments_of_a_classmethod_without_cls(jedi):
+    source = (
+        "class A:\n"
+        "    @classmethod\n"
+        "    def make(cls, alpha, beta=2):\n"
+        "        pass\n"
+        "A.make("
+    )
+    request = build("a", source, 4, 7, lookup="arguments")
+    request["config"]["useSnippets"] = "required"
+    snippet = ask([request])["a"]["arguments"]
+    assert snippet == "${1:alpha}$0"
+    assert "cls" not in snippet
+
+
 def test_lists_overridable_methods(jedi, fixtures):
     path = os.path.join(fixtures, "sample.py")
     lines = open(path, encoding="utf-8").read().split("\n")

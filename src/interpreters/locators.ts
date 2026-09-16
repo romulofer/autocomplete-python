@@ -21,6 +21,7 @@ export type InterpreterSource =
   | 'setting'
   | 'shell'
   | 'workspace'
+  | 'shebang'
   | 'poetry'
   | 'pipenv'
   | 'pyenv'
@@ -49,6 +50,7 @@ export const SOURCE_LABELS: Record<InterpreterSource, string> = {
   setting: 'Configured in settings',
   shell: 'Active shell environment',
   workspace: 'Workspace virtual environment',
+  shebang: 'Script shebang',
   poetry: 'Poetry',
   pipenv: 'Pipenv',
   pyenv: 'pyenv',
@@ -263,6 +265,66 @@ export function workspaceInterpreters(
           candidate
         )
       );
+    }
+  }
+  return found;
+}
+
+/**
+ * The interpreter a script names on its `#!` line, or `null`.
+ *
+ * Only an absolute path to a python executable counts. A
+ * `#!/usr/bin/env python3` shebang names no interpreter of its own, it defers
+ * to `PATH`, which is already a locator, so it is ignored. A relative path
+ * cannot be resolved without guessing a working directory, so it is ignored
+ * too. The executable must exist and be a regular file, the same bar every
+ * other locator holds a candidate to (upstream issue #251).
+ */
+export function shebangInterpreterPath(
+  host: DiscoveryHost,
+  contents: string | null
+): string | null {
+  if (!contents) return null;
+  const firstLine = contents.split(/\r?\n/, 1)[0] ?? '';
+  const match = /^#!\s*(\S+)/.exec(firstLine);
+  const executable = match?.[1];
+  if (!executable) return null;
+
+  const base = pathFor(host).basename(executable);
+  // `#!/usr/bin/env python`: the real interpreter is the argument, not `env`.
+  if (/^env(\.exe)?$/i.test(base)) return null;
+  if (!executablePattern(host).test(base)) return null;
+  if (!pathFor(host).isAbsolute(executable)) return null;
+  if (!host.fs.isExecutableFile(executable)) return null;
+  return executable;
+}
+
+/**
+ * Interpreters named by the `#!` line of a script at a project root.
+ *
+ * A shebang is an explicit statement of the interpreter a script was written
+ * for, so it outranks the tool-managed caches below. Only the top level of each
+ * project is read: that keeps the scan bounded, the same reason
+ * {@link workspaceInterpreters} does not recurse. Upstream issue #270.
+ */
+export function shebangInterpreters(
+  host: DiscoveryHost
+): DiscoveredInterpreter[] {
+  const found: DiscoveredInterpreter[] = [];
+  const seen = new Set<string>();
+  for (const projectPath of host.project.getPaths()) {
+    for (const entry of host.fs.readDir(projectPath)) {
+      if (!entry.endsWith('.py')) continue;
+      const filePath = pathFor(host).join(projectPath, entry);
+      if (!host.fs.isFile(filePath)) continue;
+      const interpreter = shebangInterpreterPath(host, host.fs.readFile(filePath));
+      if (!interpreter || seen.has(interpreter)) continue;
+      seen.add(interpreter);
+      found.push({
+        filePath: interpreter,
+        source: 'shebang',
+        environmentName: environmentNameFor(host, interpreter)
+      });
     }
   }
   return found;
@@ -486,6 +548,7 @@ export function discoverInterpreters(
     ...configuredInterpreters(host, options.configured),
     ...shellEnvironmentInterpreters(host),
     ...workspaceInterpreters(host),
+    ...shebangInterpreters(host),
     ...poetryInterpreters(host),
     ...pipenvInterpreters(host),
     ...pyenvInterpreters(host),
