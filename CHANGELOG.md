@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.4
+
+### Added
+
+- **Output font size from the menu.** **Packages → Autocomplete Python → Output
+  Font Size** now has **Increase**, **Decrease** and **Reset (follow editor)**,
+  backed by the `autocomplete-python-pulsar:increase-output-font-size`,
+  `decrease-output-font-size` and `reset-output-font-size` commands. Each step
+  writes the **Run: Output Font Size** setting, so the change sticks and applies
+  to the pane immediately. Increasing from the default grows from the editor
+  font size.
+
 ## 2.4.3
 
 ### Fixed

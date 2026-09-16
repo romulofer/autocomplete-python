@@ -24,6 +24,14 @@
           { 'label': 'Run File', 'command': 'autocomplete-python-pulsar:run-file' }
           { 'label': 'Stop', 'command': 'autocomplete-python-pulsar:stop' }
           { 'label': 'Toggle Output Pane', 'command': 'autocomplete-python-pulsar:toggle-output' }
+          {
+            'label': 'Output Font Size'
+            'submenu': [
+              { 'label': 'Increase', 'command': 'autocomplete-python-pulsar:increase-output-font-size' }
+              { 'label': 'Decrease', 'command': 'autocomplete-python-pulsar:decrease-output-font-size' }
+              { 'label': 'Reset (follow editor)', 'command': 'autocomplete-python-pulsar:reset-output-font-size' }
+            ]
+          }
           { 'type': 'separator' }
           { 'label': 'Select Interpreter…', 'command': 'autocomplete-python-pulsar:select-interpreter' }
           { 'label': 'Show Environment', 'command': 'autocomplete-python-pulsar:show-environment' }

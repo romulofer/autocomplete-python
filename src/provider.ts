@@ -283,6 +283,12 @@ export class PythonProvider {
         'autocomplete-python-pulsar:stop': () => this.runner.stop(),
         'autocomplete-python-pulsar:toggle-output': () =>
           void atom.workspace.toggle(RUN_PANEL_URI),
+        'autocomplete-python-pulsar:increase-output-font-size': () =>
+          this.adjustOutputFontSize(1),
+        'autocomplete-python-pulsar:decrease-output-font-size': () =>
+          this.adjustOutputFontSize(-1),
+        'autocomplete-python-pulsar:reset-output-font-size': () =>
+          atom.config.set('autocomplete-python-pulsar.outputFontSize', 0),
         'autocomplete-python-pulsar:select-interpreter': () =>
           void this.selectInterpreter(),
         'autocomplete-python-pulsar:show-environment': () => this.showEnvironment()
@@ -730,6 +736,20 @@ export class PythonProvider {
       this.runPanel.setFontSize(this.settings().outputFontSize);
     }
     return this.runPanel;
+  }
+
+  /**
+   * Step the output pane font size, writing it back to the setting so the
+   * change sticks and the config observer re-applies it to the pane. A stored
+   * 0 means "follow the editor", so the first step grows from the editor size
+   * rather than from an implicit value. Clamped to the setting's own bounds.
+   */
+  private adjustOutputFontSize(delta: number): void {
+    const current = this.settings().outputFontSize;
+    const base =
+      current > 0 ? current : Number(atom.config.get('editor.fontSize')) || 14;
+    const next = Math.min(72, Math.max(1, base + delta));
+    atom.config.set('autocomplete-python-pulsar.outputFontSize', next);
   }
 
   /**
