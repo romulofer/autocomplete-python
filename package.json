@@ -19,11 +19,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/romulofer/autocomplete-python.git"
+    "url": "https://github.com/romulofer/autocomplete-python-pulsar.git"
   },
-  "homepage": "https://github.com/romulofer/autocomplete-python#readme",
+  "homepage": "https://github.com/romulofer/autocomplete-python-pulsar#readme",
   "bugs": {
-    "url": "https://github.com/romulofer/autocomplete-python/issues"
+    "url": "https://github.com/romulofer/autocomplete-python-pulsar/issues"
   },
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -39,7 +39,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:ts": "bun test",
     "test:py": "python3 -m pytest",
-    "test": "npm run typecheck && npm run test:ts && npm run test:py",
+    "test": "bun run typecheck && bun run test:ts && bun run test:py",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

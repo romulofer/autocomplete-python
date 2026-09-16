@@ -113,4 +113,4 @@ Please include:
 - the relevant part of the developer console with `Output Debug Logs` on
 - a small Python snippet that reproduces it
 
-<https://github.com/romulofer/autocomplete-python/issues>
+<https://github.com/romulofer/autocomplete-python-pulsar/issues>

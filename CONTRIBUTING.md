@@ -3,7 +3,7 @@
 ## Setup
 
 ```sh
-git clone https://github.com/romulofer/autocomplete-python.git
+git clone https://github.com/romulofer/autocomplete-python-pulsar.git
 cd autocomplete-python-pulsar
 npm install
 python3 -m pip install -r python/requirements-dev.txt
@@ -12,6 +12,13 @@ ppm link .
 ```
 
 Restart Pulsar, open a Python file, and the linked package takes over.
+
+[Bun](https://bun.sh) works as a drop-in for the dev commands and is faster:
+`bun install`, `bun run build`, `bun run test:ts`, `bun run typecheck`. Run the
+suite with `bun run test` — not bare `bun test`, which invokes Bun's own test
+runner and skips typecheck and pytest. Keep `package-lock.json` as the source of
+truth: `ppm` and end-user installs use `npm`, not Bun, so do not commit a
+`bun.lockb`.
 
 ## Working on it
 
