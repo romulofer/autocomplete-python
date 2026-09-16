@@ -87,6 +87,12 @@ describe('resolveSettings', () => {
     ).toBe(3);
   });
 
+  it('defaults the output font size to zero and clamps negatives', () => {
+    expect(resolveSettings({}).outputFontSize).toBe(0);
+    expect(resolveSettings({ outputFontSize: 18 }).outputFontSize).toBe(18);
+    expect(resolveSettings({ outputFontSize: -4 }).outputFontSize).toBe(0);
+  });
+
   it('trims the selected interpreter', () => {
     expect(
       resolveSettings({ selectedInterpreter: '  /usr/bin/python3  ' })

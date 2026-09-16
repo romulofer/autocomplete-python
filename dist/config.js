@@ -120,7 +120,8 @@ function resolveSettings(raw = {}) {
             : 'file',
         saveBeforeRun: asBoolean(raw.saveBeforeRun, true),
         clearOutputOnRun: asBoolean(raw.clearOutputOnRun, true),
-        showOutputOnRun: asBoolean(raw.showOutputOnRun, true)
+        showOutputOnRun: asBoolean(raw.showOutputOnRun, true),
+        outputFontSize: Math.max(0, asNumber(raw.outputFontSize, 0))
     };
 }
 /**
@@ -265,6 +266,15 @@ exports.configSchema = {
         order: 17,
         title: 'Run: Show Output On Run',
         description: 'Reveal the output pane when a run starts. Focus stays in the editor either way.'
+    },
+    outputFontSize: {
+        type: 'integer',
+        default: 0,
+        minimum: 0,
+        maximum: 72,
+        order: 18,
+        title: 'Run: Output Font Size (pixels)',
+        description: 'Font size for the run output pane. Set to 0 to follow the editor font size.'
     },
     outputDebug: {
         type: 'boolean',

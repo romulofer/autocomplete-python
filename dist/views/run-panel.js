@@ -113,6 +113,15 @@ class RunPanel {
         this.outputElement.textContent = '';
         this.lineCount = 0;
     }
+    /**
+     * Set the output and input font size in pixels. `0` clears the override, so
+     * the pane goes back to inheriting the editor font size from the stylesheet.
+     */
+    setFontSize(pixels) {
+        const value = pixels > 0 ? `${pixels}px` : '';
+        this.outputElement.style.fontSize = value;
+        this.inputField.style.fontSize = value;
+    }
     handle(event) {
         switch (event.type) {
             case 'started':

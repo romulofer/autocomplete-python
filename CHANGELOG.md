@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.4.3
+
+### Fixed
+
+- **A failed run no longer passes unnoticed.** When a script ended with a
+  non-zero exit code - a `SyntaxError`, an uncaught exception, `sys.exit(1)` -
+  the traceback went only to the output pane. With "Show Output On Run" turned
+  off, or after the pane was closed, the failure was silent: the run button
+  simply went idle and nothing said the script had crashed. The output pane is
+  now revealed on any non-zero exit, so the error is always shown.
+
+### Added
+
+- **Output pane font size.** A new **Run: Output Font Size (pixels)** setting
+  sets the font size of the run output pane independently of the editor. Set it
+  to 0 to keep following the editor font size. Changes apply immediately.
+
 ## 2.4.1
 
 ### Added

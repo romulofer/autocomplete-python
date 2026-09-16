@@ -157,6 +157,13 @@ class PythonProvider {
             if (event.type === 'exited' || event.type === 'failed') {
                 this.runButton?.setRunning(false);
             }
+            // A non-zero exit means the script failed - a traceback, a SyntaxError,
+            // sys.exit(1). That output is the whole point of running it, so reveal
+            // the pane even when "Show Output On Run" is off or the user closed it;
+            // otherwise the failure is silent and looks like nothing happened.
+            if (event.type === 'exited' && event.code !== null && event.code !== 0) {
+                void this.revealRunPanel();
+            }
             if (event.type === 'failed') {
                 atom_host_1.atomNotifier.error('autocomplete-python-pulsar could not run the file.', {
                     description: event.message,
@@ -234,7 +241,7 @@ class PythonProvider {
     observeConfig() {
         this.disposables.add(atom.config.observe('autocomplete-python-pulsar.suggestionPriority', (value) => {
             this.suggestionPriority = Number(value) || 3;
-        }), atom.config.onDidChange('autocomplete-python-pulsar.triggerCompletionRegex', () => this.updateTriggerCompletionRegex()), 
+        }), atom.config.onDidChange('autocomplete-python-pulsar.triggerCompletionRegex', () => this.updateTriggerCompletionRegex()), atom.config.onDidChange('autocomplete-python-pulsar.outputFontSize', () => this.runPanel?.setFontSize(this.settings().outputFontSize)), 
         // Anything that changes which interpreter or which packages Jedi sees
         // invalidates both the interpreter lookup and every cached response.
         atom.config.onDidChange('autocomplete-python-pulsar.pythonPaths', () => this.reloadDaemon()), atom.config.onDidChange('autocomplete-python-pulsar.extraPaths', () => this.reloadDaemon()), atom.config.onDidChange('autocomplete-python-pulsar.selectedInterpreter', () => this.reloadDaemon()), atom.project.onDidChangePaths(() => this.reloadDaemon()));
@@ -500,8 +507,25 @@ class PythonProvider {
     }
     // --- running ------------------------------------------------------------
     ensureRunPanel() {
-        this.runPanel ??= new run_panel_1.RunPanel(() => this.runner.stop(), (text) => this.runner.sendInput(text), () => this.runner.endInput());
+        if (!this.runPanel) {
+            this.runPanel = new run_panel_1.RunPanel(() => this.runner.stop(), (text) => this.runner.sendInput(text), () => this.runner.endInput());
+            this.runPanel.setFontSize(this.settings().outputFontSize);
+        }
         return this.runPanel;
+    }
+    /**
+     * Bring the output pane into view. Opening the item is not enough when the
+     * bottom dock itself is hidden, so show the dock too. Focus stays in the
+     * editor: the user is running code, not reading yet.
+     */
+    async revealRunPanel() {
+        this.ensureRunPanel();
+        await atom.workspace.open(run_panel_1.RUN_PANEL_URI, {
+            activatePane: false,
+            activateItem: true,
+            searchAllPanes: true
+        });
+        atom.workspace.getBottomDock().show();
     }
     /** The status bar button and its keybinding share this. */
     toggleRun() {
@@ -553,13 +577,7 @@ class PythonProvider {
             panel.clear();
         if (settings.showOutputOnRun) {
             // Keep focus in the editor: the user is running code, not reading yet.
-            await atom.workspace.open(run_panel_1.RUN_PANEL_URI, {
-                activatePane: false,
-                activateItem: true,
-                searchAllPanes: true
-            });
-            // Opening the item is not enough when the dock itself is hidden.
-            atom.workspace.getBottomDock().show();
+            await this.revealRunPanel();
         }
         this.runner.run({
             interpreter,
