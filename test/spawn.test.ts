@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'bun:test';
-import { createRunProcess, type ChildLike, type Timers } from '../src/run/spawn';
+import {
+  createRunProcess,
+  spawnPythonProcess,
+  type ChildLike,
+  type Timers
+} from '../src/run/spawn';
 
 /** A stream that records its encoding and replays `data` to its listeners. */
 class FakeStream {
@@ -159,5 +164,25 @@ describe('createRunProcess', () => {
 
     proc.kill();
     expect(child.signals).toEqual([]);
+  });
+});
+
+describe('spawnPythonProcess', () => {
+  // These run a real process through the real adapter, which is the one seam
+  // the fake above cannot exercise. `process.execPath` stands in for the
+  // interpreter so the test does not depend on Python being installed.
+  it('streams a real process to its exit', async () => {
+    const proc = spawnPythonProcess({
+      command: process.execPath,
+      args: ['-e', 'process.stdout.write("hi")'],
+      cwd: process.cwd()
+    });
+
+    const out: string[] = [];
+    proc.onStdout((chunk) => out.push(chunk));
+    const code = await new Promise<number | null>((resolve) => proc.onExit(resolve));
+
+    expect(out.join('')).toContain('hi');
+    expect(code).toBe(0);
   });
 });

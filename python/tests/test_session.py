@@ -111,6 +111,16 @@ def test_top_level_package_dir_stops_at_a_directory_without_init(tmp_path):
     assert top_level_package_dir(str(module)) == str(tmp_path)
 
 
+def test_top_level_package_dir_stops_at_the_filesystem_root(monkeypatch):
+    # A package that appears to reach all the way to the root must not spin
+    # forever: the walk stops once the parent stops changing.
+    import os
+
+    monkeypatch.setattr(os.path, "isfile", lambda path: True)
+    result = top_level_package_dir("/a/b/c.py")
+    assert os.path.dirname(result) == result
+
+
 # --- sys.path isolation ---------------------------------------------------
 
 
