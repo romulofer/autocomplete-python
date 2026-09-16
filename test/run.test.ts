@@ -174,6 +174,8 @@ interface FakeChild extends RunProcessLike {
   emitExit(code: number | null): void;
   emitError(error: NodeJS.ErrnoException): void;
   killed: boolean;
+  stdinClosed: boolean;
+  written: string[];
 }
 
 function harness(): {
@@ -195,10 +197,16 @@ function harness(): {
 
     const child: FakeChild = {
       killed: false,
+      stdinClosed: false,
+      written: [],
       onStdout: (l) => void stdout.push(l),
       onStderr: (l) => void stderr.push(l),
       onExit: (l) => void exit.push(l),
       onError: (l) => void error.push(l),
+      write: (text) => void child.written.push(text),
+      closeStdin: () => {
+        child.stdinClosed = true;
+      },
       kill: () => {
         child.killed = true;
       },
@@ -338,6 +346,33 @@ describe('PythonRunner', () => {
     const h = harness();
     expect(() => h.runner.stop()).not.toThrow();
     expect(h.events).toHaveLength(0);
+  });
+
+  it('feeds input to the child and echoes it', () => {
+    const h = harness();
+    h.runner.run(input);
+    h.runner.sendInput('yes\n');
+
+    expect(h.child().written).toEqual(['yes\n']);
+    expect(h.events.at(-1)).toMatchObject({ type: 'stdin', text: 'yes\n' });
+  });
+
+  it('ignores input when nothing is running', () => {
+    const h = harness();
+    h.runner.sendInput('yes\n');
+    expect(h.events).toHaveLength(0);
+  });
+
+  it('closes stdin on request', () => {
+    const h = harness();
+    h.runner.run(input);
+    h.runner.endInput();
+    expect(h.child().stdinClosed).toBe(true);
+  });
+
+  it('ignores an stdin close when nothing is running', () => {
+    const h = harness();
+    expect(() => h.runner.endInput()).not.toThrow();
   });
 
   it('lets a listener unsubscribe', () => {

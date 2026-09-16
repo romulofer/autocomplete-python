@@ -711,7 +711,11 @@ export class PythonProvider {
   // --- running ------------------------------------------------------------
 
   private ensureRunPanel(): RunPanel {
-    this.runPanel ??= new RunPanel(() => this.runner.stop());
+    this.runPanel ??= new RunPanel(
+      () => this.runner.stop(),
+      (text) => this.runner.sendInput(text),
+      () => this.runner.endInput()
+    );
     return this.runPanel;
   }
 

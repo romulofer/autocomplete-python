@@ -43,6 +43,24 @@ function createRunProcess(child, timers = realTimers) {
         onError(listener) {
             child.on('error', (error) => listener(error));
         },
+        write(text) {
+            // A script that never reads stdin leaves the pipe with no reader; guard
+            // so a stray keystroke in the pane cannot throw EPIPE at us.
+            try {
+                child.stdin?.write(text);
+            }
+            catch {
+                // The script has closed its end; nothing to do.
+            }
+        },
+        closeStdin() {
+            try {
+                child.stdin?.end();
+            }
+            catch {
+                // Already closed.
+            }
+        },
         kill() {
             if (child.exitCode !== null || child.signalCode !== null)
                 return;

@@ -50,7 +50,7 @@ ppm install autocomplete-python-pulsar
   default.
 - **Run button** in the status bar: run the current file with the interpreter
   the package discovered, with output in a dock pane. `F5`, or click the button
-  again to stop.
+  again to stop. The pane takes stdin, so scripts that call `input()` work.
 - **Interpreter picker** in the status bar, listing every environment found.
 
 ## Choosing an interpreter

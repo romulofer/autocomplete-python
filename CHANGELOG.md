@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- **Send input to a running script.** The Python Output pane now has an input
+  field while a script is running: type a line, press Enter, and it is fed to the
+  script's stdin and echoed into the transcript. The **EOF** button closes stdin
+  so a script reading to end-of-input can finish. Scripts that call `input()` or
+  read `sys.stdin` are now usable from the pane rather than appearing to hang.
+
 ### Fixed
 
 - **Run arguments quote the way a shell does.** A quote that opened partway

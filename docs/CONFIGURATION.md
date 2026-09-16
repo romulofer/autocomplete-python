@@ -120,6 +120,12 @@ The status bar button doubles as the run indicator. While a script is going it
 turns into a stop button; `Shift+F5` and the Stop button in the pane do the same
 thing. Starting a run while one is already going stops the old one first.
 
+While a script is running the pane shows an input field. Type a line and press
+Enter to send it to the script's stdin; it is echoed into the transcript. The
+**EOF** button closes stdin, which is what a script doing `sys.stdin.read()`
+waits for. This is what makes a script that calls `input()` usable from the pane
+rather than sitting there apparently hung.
+
 Scripts are spawned directly, with no shell involved, so nothing in
 `Run: Script Arguments` is interpreted as a shell operator. Quoting works the way
 it does in a shell: a quote may open partway through a word, and both halves stay

@@ -15,6 +15,7 @@ const SIGKILL_GRACE_MS = 2000;
 
 /** The subset of `ChildProcess` this adapter relies on. */
 export interface ChildLike {
+  readonly stdin: WritableLike | null;
   readonly stdout: StreamLike | null;
   readonly stderr: StreamLike | null;
   readonly exitCode: number | null;
@@ -27,6 +28,11 @@ export interface ChildLike {
 interface StreamLike {
   setEncoding(encoding: string): void;
   on(event: 'data', listener: (chunk: string) => void): void;
+}
+
+interface WritableLike {
+  write(chunk: string): void;
+  end(): void;
 }
 
 /** The two timer calls {@link createRunProcess} needs, injectable for tests. */
@@ -70,6 +76,22 @@ export function createRunProcess(
     },
     onError(listener) {
       child.on('error', (error: Error) => listener(error as NodeJS.ErrnoException));
+    },
+    write(text) {
+      // A script that never reads stdin leaves the pipe with no reader; guard
+      // so a stray keystroke in the pane cannot throw EPIPE at us.
+      try {
+        child.stdin?.write(text);
+      } catch {
+        // The script has closed its end; nothing to do.
+      }
+    },
+    closeStdin() {
+      try {
+        child.stdin?.end();
+      } catch {
+        // Already closed.
+      }
     },
     kill() {
       if (child.exitCode !== null || child.signalCode !== null) return;

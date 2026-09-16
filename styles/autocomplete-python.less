@@ -104,5 +104,21 @@ autocomplete-python-suggestion {
     background-color: @tool-panel-background-color;
 
     .stderr { color: @text-color-error; }
+    // Echoed input, so the transcript reads like a terminal session.
+    .stdin { color: @text-color-info; }
+  }
+
+  .autocomplete-python-run-input {
+    display: flex;
+    align-items: center;
+    gap: @component-padding;
+    padding: (@component-padding / 2) @component-padding;
+    border-top: 1px solid @pane-item-border-color;
+    background-color: @tool-panel-background-color;
+
+    .input-text {
+      flex: 1;
+      font-family: @font-family;
+    }
   }
 }

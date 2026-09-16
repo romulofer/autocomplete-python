@@ -13,6 +13,10 @@ export interface RunProcessLike {
   /** `code` is `null` when the process was terminated by a signal. */
   onExit(listener: (code: number | null) => void): void;
   onError(listener: (error: NodeJS.ErrnoException) => void): void;
+  /** Feed text to the script's stdin. */
+  write(text: string): void;
+  /** Close stdin, so a script reading to EOF can finish. */
+  closeStdin(): void;
   kill(): void;
 }
 
@@ -28,6 +32,7 @@ export type RunEvent =
   | { type: 'started'; description: string; cwd: string }
   | { type: 'stdout'; text: string }
   | { type: 'stderr'; text: string }
+  | { type: 'stdin'; text: string }
   | { type: 'exited'; code: number | null; durationMs: number }
   | { type: 'failed'; message: string };
 
@@ -102,6 +107,23 @@ export class PythonRunner {
         durationMs: Date.now() - this.startedAt
       });
     });
+  }
+
+  /**
+   * Feed a line to the running script's stdin, echoing it to the pane so the
+   * transcript reads the way a terminal session would. A no-op when nothing is
+   * running.
+   */
+  sendInput(text: string): void {
+    if (!this.child) return;
+    this.child.write(text);
+    this.emit({ type: 'stdin', text });
+  }
+
+  /** Close the running script's stdin, so one reading to EOF can finish. */
+  endInput(): void {
+    if (!this.child) return;
+    this.child.closeStdin();
   }
 
   stop(): void {

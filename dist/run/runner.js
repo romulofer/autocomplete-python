@@ -72,6 +72,23 @@ class PythonRunner {
             });
         });
     }
+    /**
+     * Feed a line to the running script's stdin, echoing it to the pane so the
+     * transcript reads the way a terminal session would. A no-op when nothing is
+     * running.
+     */
+    sendInput(text) {
+        if (!this.child)
+            return;
+        this.child.write(text);
+        this.emit({ type: 'stdin', text });
+    }
+    /** Close the running script's stdin, so one reading to EOF can finish. */
+    endInput() {
+        if (!this.child)
+            return;
+        this.child.closeStdin();
+    }
     stop() {
         if (!this.child)
             return;

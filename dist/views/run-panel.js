@@ -16,14 +16,20 @@ const MAX_LINES = 5000;
  */
 class RunPanel {
     onStopRequested;
+    onInput;
+    onEndInput;
     element;
     outputElement;
     statusElement;
     commandElement;
     stopButton;
+    inputRow;
+    inputField;
     lineCount = 0;
-    constructor(onStopRequested) {
+    constructor(onStopRequested, onInput, onEndInput) {
         this.onStopRequested = onStopRequested;
+        this.onInput = onInput;
+        this.onEndInput = onEndInput;
         this.element = document.createElement('div');
         this.element.classList.add('autocomplete-python-run-panel');
         const header = document.createElement('div');
@@ -44,7 +50,33 @@ class RunPanel {
         header.append(this.commandElement, this.statusElement, this.stopButton, clearButton);
         this.outputElement = document.createElement('pre');
         this.outputElement.classList.add('autocomplete-python-run-output');
-        this.element.append(header, this.outputElement);
+        // Input row: hidden until a script is running, so it does not invite typing
+        // when nothing would read it.
+        this.inputRow = document.createElement('div');
+        this.inputRow.classList.add('autocomplete-python-run-input');
+        this.inputRow.style.display = 'none';
+        this.inputField = document.createElement('input');
+        this.inputField.type = 'text';
+        this.inputField.classList.add('input-text', 'native-key-bindings');
+        this.inputField.setAttribute('placeholder', 'stdin: type and press Enter');
+        this.inputField.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.submitInput();
+            }
+        });
+        const eofButton = document.createElement('button');
+        eofButton.classList.add('btn', 'eof');
+        eofButton.textContent = 'EOF';
+        eofButton.setAttribute('title', 'Close stdin (Ctrl+D)');
+        eofButton.addEventListener('click', () => this.onEndInput());
+        this.inputRow.append(this.inputField, eofButton);
+        this.element.append(header, this.outputElement, this.inputRow);
+    }
+    submitInput() {
+        // A newline is what a terminal sends on Enter and what `input()` waits for.
+        this.onInput(this.inputField.value + '\n');
+        this.inputField.value = '';
     }
     // --- Pulsar dock item contract -----------------------------------------
     /**
@@ -87,6 +119,7 @@ class RunPanel {
                 this.commandElement.textContent = event.description;
                 this.setStatus(`running in ${event.cwd}`, 'running');
                 this.stopButton.style.display = '';
+                this.inputRow.style.display = '';
                 break;
             case 'stdout':
                 this.append(event.text, 'stdout');
@@ -94,8 +127,12 @@ class RunPanel {
             case 'stderr':
                 this.append(event.text, 'stderr');
                 break;
+            case 'stdin':
+                this.append(event.text, 'stdin');
+                break;
             case 'exited': {
                 this.stopButton.style.display = 'none';
+                this.inputRow.style.display = 'none';
                 const seconds = (event.durationMs / 1000).toFixed(2);
                 if (event.code === null) {
                     this.setStatus(`stopped after ${seconds}s`, 'stopped');
@@ -110,6 +147,7 @@ class RunPanel {
             }
             case 'failed':
                 this.stopButton.style.display = 'none';
+                this.inputRow.style.display = 'none';
                 this.setStatus('failed to start', 'error');
                 this.append(`${event.message}\n`, 'stderr');
                 break;

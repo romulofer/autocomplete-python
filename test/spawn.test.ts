@@ -24,8 +24,23 @@ class FakeStream {
   }
 }
 
+/** A writable that records what it was fed and whether it was closed. */
+class FakeWritable {
+  readonly chunks: string[] = [];
+  ended = false;
+
+  write(chunk: string): void {
+    this.chunks.push(chunk);
+  }
+
+  end(): void {
+    this.ended = true;
+  }
+}
+
 /** A child process whose lifecycle the test drives by hand. */
 class FakeChild implements ChildLike {
+  stdin: FakeWritable | null = new FakeWritable();
   readonly stdout = new FakeStream();
   readonly stderr = new FakeStream();
   exitCode: number | null = null;
@@ -164,6 +179,39 @@ describe('createRunProcess', () => {
 
     proc.kill();
     expect(child.signals).toEqual([]);
+  });
+
+  it('writes stdin through to the child', () => {
+    const child = new FakeChild();
+    const stdin = child.stdin!;
+    const proc = createRunProcess(child, fakeTimers());
+
+    proc.write('answer\n');
+    proc.closeStdin();
+
+    expect(stdin.chunks).toEqual(['answer\n']);
+    expect(stdin.ended).toBe(true);
+  });
+
+  it('swallows a write to a script that closed its stdin', () => {
+    const child = new FakeChild();
+    child.stdin!.write = () => {
+      throw Object.assign(new Error('write EPIPE'), { code: 'EPIPE' });
+    };
+    const proc = createRunProcess(child, fakeTimers());
+
+    expect(() => proc.write('x')).not.toThrow();
+  });
+
+  it('tolerates a child with no stdin', () => {
+    const child = new FakeChild();
+    child.stdin = null;
+    const proc = createRunProcess(child, fakeTimers());
+
+    expect(() => {
+      proc.write('x');
+      proc.closeStdin();
+    }).not.toThrow();
   });
 });
 

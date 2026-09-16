@@ -500,7 +500,7 @@ class PythonProvider {
     }
     // --- running ------------------------------------------------------------
     ensureRunPanel() {
-        this.runPanel ??= new run_panel_1.RunPanel(() => this.runner.stop());
+        this.runPanel ??= new run_panel_1.RunPanel(() => this.runner.stop(), (text) => this.runner.sendInput(text), () => this.runner.endInput());
         return this.runPanel;
     }
     /** The status bar button and its keybinding share this. */
