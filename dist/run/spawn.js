@@ -2,28 +2,29 @@
 /**
  * The real spawn adapter for {@link PythonRunner}, backed by `child_process`.
  * This is the only file in `src/run/` that touches Node's process API.
+ *
+ * The wiring from a child process to a {@link RunProcessLike} lives in
+ * {@link createRunProcess}, which takes the child and its timers as parameters
+ * so the stop-then-kill escalation can be driven by a fake in the tests.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.spawnPythonProcess = void 0;
+exports.createRunProcess = createRunProcess;
 const child_process_1 = require("child_process");
 /** How long a stopped process gets to exit before it is killed outright. */
 const SIGKILL_GRACE_MS = 2000;
-const spawnPythonProcess = (options) => {
-    const child = (0, child_process_1.spawn)(options.command, options.args, {
-        cwd: options.cwd,
-        env: {
-            ...process.env,
-            // Belt and braces alongside `-u`: some runtimes re-enable buffering when
-            // stdout is a pipe rather than a terminal.
-            PYTHONUNBUFFERED: '1'
-        }
-    });
+const realTimers = {
+    set: (callback, ms) => setTimeout(callback, ms),
+    clear: (handle) => clearTimeout(handle)
+};
+/** Wrap a spawned child in the shape {@link PythonRunner} drives. */
+function createRunProcess(child, timers = realTimers) {
     child.stdout?.setEncoding('utf8');
     child.stderr?.setEncoding('utf8');
     let killTimer = null;
     const clearKillTimer = () => {
-        if (killTimer) {
-            clearTimeout(killTimer);
+        if (killTimer !== null) {
+            timers.clear(killTimer);
             killTimer = null;
         }
     };
@@ -48,13 +49,25 @@ const spawnPythonProcess = (options) => {
             child.kill('SIGTERM');
             // A script that traps SIGTERM, or one blocked in C code, would otherwise
             // keep the pane busy forever.
-            killTimer = setTimeout(() => {
+            killTimer = timers.set(() => {
                 if (child.exitCode === null && child.signalCode === null) {
                     child.kill('SIGKILL');
                 }
             }, SIGKILL_GRACE_MS);
         }
     };
+}
+const spawnPythonProcess = (options) => {
+    const child = (0, child_process_1.spawn)(options.command, options.args, {
+        cwd: options.cwd,
+        env: {
+            ...process.env,
+            // Belt and braces alongside `-u`: some runtimes re-enable buffering when
+            // stdout is a pipe rather than a terminal.
+            PYTHONUNBUFFERED: '1'
+        }
+    });
+    return createRunProcess(child);
 };
 exports.spawnPythonProcess = spawnPythonProcess;
 //# sourceMappingURL=spawn.js.map
