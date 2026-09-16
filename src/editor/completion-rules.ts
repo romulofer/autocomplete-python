@@ -58,6 +58,10 @@ export function truncateToIdentifierStart(
   );
   if (!lastIdentifier) return null;
 
-  const truncatedColumn = lastIdentifier.index + 1;
+  // Rewind past the dot when there is one; a bare identifier rewinds to its own
+  // start. The old `index + 1` assumed the leading dot always matched, so a
+  // dot-less identifier lost its first character.
+  const hasLeadingDot = lastIdentifier[0].startsWith('.');
+  const truncatedColumn = lastIdentifier.index + (hasLeadingDot ? 1 : 0);
   return { column: truncatedColumn, line: line.slice(0, truncatedColumn) };
 }

@@ -28,16 +28,48 @@ export interface RunCommand {
 }
 
 /**
- * Split a settings string into arguments, honouring quoted runs so a path with
- * a space survives. Deliberately simple: no shell is involved, so there is
- * nothing here to escape into.
+ * Split a settings string into arguments the way a shell splits a command line,
+ * minus the parts that only make sense with a shell.
+ *
+ * A quote can open partway through a word and the two halves stay one argument,
+ * so `--json='{"a": 1}'` and `--name="a b"` survive as single arguments rather
+ * than being cut at the space. Only the quote characters are removed; nothing is
+ * treated as a shell operator and backslashes are literal, because these
+ * arguments are handed straight to `spawn` with no shell in between.
  */
 export function splitArguments(value: string): string[] {
-  const matches = value.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
-  return matches.map((token) => {
-    const quoted = /^(".*"|'.*')$/s.test(token);
-    return quoted ? token.slice(1, -1) : token;
-  });
+  const args: string[] = [];
+  let current = '';
+  // `null` outside a quoted run, otherwise the quote character we are inside.
+  let quote: '"' | "'" | null = null;
+  // Distinguishes a real (possibly empty, e.g. `""`) argument from the gaps
+  // between arguments, so trailing whitespace does not push an empty string.
+  let started = false;
+
+  for (const char of value) {
+    if (quote) {
+      if (char === quote) quote = null;
+      else current += char;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      started = true;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      if (started) {
+        args.push(current);
+        current = '';
+        started = false;
+      }
+      continue;
+    }
+    current += char;
+    started = true;
+  }
+  if (started) args.push(current);
+  return args;
 }
 
 /**

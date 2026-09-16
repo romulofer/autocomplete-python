@@ -738,7 +738,18 @@ export class PythonProvider {
 
     const settings = this.settings();
     if (settings.saveBeforeRun && editor.isModified()) {
-      await editor.save();
+      try {
+        await editor.save();
+      } catch (err) {
+        // A read-only file or a full disk would otherwise reject the promise
+        // that `toggleRun` fires and forgets, leaving the user with no output
+        // and no idea the run never happened.
+        atomNotifier.error(
+          'autocomplete-python-pulsar could not save the file before running it.',
+          { description: String(err), dismissable: true }
+        );
+        return;
+      }
     }
 
     const filePath = editor.getPath();

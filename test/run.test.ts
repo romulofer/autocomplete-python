@@ -39,6 +39,29 @@ describe('splitArguments', () => {
     // No shell is involved, so these are literal arguments, not operators.
     expect(splitArguments('a>b;c')).toEqual(['a>b;c']);
   });
+
+  it('keeps a quote that opens partway through a word', () => {
+    // `--name="a b"` is one argument in a shell; splitting it at the space
+    // would hand the script a broken flag.
+    expect(splitArguments('--name="a b"')).toEqual(['--name=a b']);
+    expect(splitArguments("--json='{\"k\": 1}'")).toEqual(['--json={"k": 1}']);
+  });
+
+  it('joins quoted and unquoted halves of the same word', () => {
+    expect(splitArguments('a"b c"d')).toEqual(['ab cd']);
+  });
+
+  it('keeps an explicitly empty argument', () => {
+    expect(splitArguments('--sep ""')).toEqual(['--sep', '']);
+  });
+
+  it('treats an unbalanced quote as running to the end', () => {
+    expect(splitArguments('--path "/tmp/a b')).toEqual(['--path', '/tmp/a b']);
+  });
+
+  it('does not treat a backslash as an escape', () => {
+    expect(splitArguments('C:\\Users\\me')).toEqual(['C:\\Users\\me']);
+  });
 });
 
 describe('projectRootFor', () => {

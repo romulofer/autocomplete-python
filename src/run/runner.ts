@@ -83,6 +83,7 @@ export class PythonRunner {
 
     child.onError((error) => {
       this.child = null;
+      this.stopping = false;
       const message =
         error.code === 'ENOENT'
           ? `Could not run ${runCommand.command}. Choose another interpreter with "Select Interpreter".`

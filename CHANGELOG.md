@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Run arguments quote the way a shell does.** A quote that opened partway
+  through a word, as in `--name="a b"` or `--json='{"k": 1}'`, used to be cut at
+  the space and handed to the script as two broken arguments. The quoted and
+  unquoted halves of a word now stay one argument, an unbalanced quote runs to
+  the end rather than being dropped, and an explicitly empty `""` is kept.
+- **A failed save no longer swallows the run.** With `saveBeforeRun` on, a save
+  that failed (a read-only file, a full disk) left the run silently abandoned
+  with no output and no message. The failure is now reported and the run stops.
+- **Completing a top-level name no longer drops its first character.** The
+  cursor rewind that lets one Jedi lookup serve a whole identifier assumed a
+  leading dot, so completing a bare name like `getcwd` looked it up on the wrong
+  prefix.
+
 ## 2.1.0
 
 ### Added

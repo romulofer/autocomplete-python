@@ -121,11 +121,12 @@ turns into a stop button; `Shift+F5` and the Stop button in the pane do the same
 thing. Starting a run while one is already going stops the old one first.
 
 Scripts are spawned directly, with no shell involved, so nothing in
-`Run: Script Arguments` is interpreted as a shell operator. Quoted runs are kept
-together:
+`Run: Script Arguments` is interpreted as a shell operator. Quoting works the way
+it does in a shell: a quote may open partway through a word, and both halves stay
+one argument. A backslash is a literal character, not an escape.
 
 ```
---input "/tmp/my data.csv" --verbose
+--input "/tmp/my data.csv" --name="value with spaces" --json='{"limit": 10}'
 ```
 
 Output is unbuffered, so it appears as the script produces it rather than all at

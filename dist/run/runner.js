@@ -54,6 +54,7 @@ class PythonRunner {
         child.onStderr((text) => this.emit({ type: 'stderr', text }));
         child.onError((error) => {
             this.child = null;
+            this.stopping = false;
             const message = error.code === 'ENOENT'
                 ? `Could not run ${runCommand.command}. Choose another interpreter with "Select Interpreter".`
                 : `Failed to start the script: ${error.message}`;

@@ -73,6 +73,19 @@ describe('truncateToIdentifierStart', () => {
     });
   });
 
+  it('rewinds a dot-less identifier to its own start, keeping every character', () => {
+    // Regression: `index + 1` used to assume a leading dot, so a bare
+    // identifier lost its first character and completed on the wrong prefix.
+    expect(truncateToIdentifierStart('getcwd', 6)).toEqual({
+      column: 0,
+      line: ''
+    });
+    expect(truncateToIdentifierStart('  value', 7)).toEqual({
+      column: 2,
+      line: '  '
+    });
+  });
+
   it('truncates at the cursor, ignoring text to its right', () => {
     expect(truncateToIdentifierStart('os.getcwd', 6)).toEqual({
       column: 3,
